@@ -1,0 +1,7 @@
+{% for field in form %}
+    <div class="fieldWrapper">
+        {{ field.errors }}
+        {{ field.label_tag }}: {{ field }}
+    </div>
+    <div><a href='{{os}} url {{m.Name}}Controller {{cs}}?op=upd'>Edit</a></div>
+{% endfor %}

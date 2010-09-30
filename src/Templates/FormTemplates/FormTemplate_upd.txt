@@ -1,0 +1,10 @@
+<form action="{{so}} url {{m.Name}}Controller {{sc}}" method="post">
+    <input type='hidden' name='op' value='{{op}}'></input>
+    {% for field in form %}
+        <div class="fieldWrapper">
+            {{ field.errors }}
+            {{ field.label_tag }}: {{ field }}
+        </div>
+    {% endfor %}
+    <p><input type="submit" value="Save" /></p>
+</form>
