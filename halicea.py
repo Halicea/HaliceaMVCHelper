@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import sys
 import os
 import shutil
@@ -7,8 +8,10 @@ from os.path import join as pjoin
 from os.path import abspath
 from os.path import dirname
 from os.path import basename
- 
+import readline
+
 #Template Configuration
+installPath = dirname(abspath(__file__))
 TMPL_DIR = 'Templates'
 FRMTMPL = pjoin(TMPL_DIR, 'FormTemplates')
 OPRTMPL = pjoin(TMPL_DIR, 'OperationTemplates')
@@ -18,10 +21,10 @@ VTPath = pjoin(TMPL_DIR, 'ViewTemplate.txt')
 CTPath = pjoin(TMPL_DIR, 'ControllerTemplate.txt')
 
 #Set django in pythonpath
-
 sys.path.append(settings.APPENGINE_PATH)
 sys.path.append(pjoin(settings.APPENGINE_PATH, 'lib', 'django' ))
-
+sys.path.append(pjoin(settings.APPENGINE_PATH, 'lib', 'webob' ))
+sys.path.append(pjoin(settings.APPENGINE_PATH, 'lib', 'yaml','lib' ))
 ###
 os.environ['DJANGO_SETTINGS_MODULE']  = 'settings'
 from django import template
@@ -58,46 +61,81 @@ class Property(object):
     Required = 'False'
     Default = None
     
-class MVCHelper(object):
-    def GetProjectStructure(self):
-        pass
-    def MakeMVC(self, args):
-        operations = [x[0] for x in settings.DEFAULT_OPERATIONS.iteritems() 
-                      if x[1].has_key('view') and x[1]['view']]
-        templates = [os.path.join(OPRTMPL,settings.DEFAULT_OPERATIONS[x]['method']+'.txt')
-                     for x in settings.DEFAULT_OPERATIONS.iterkeys()]
-        templates = list(set(templates))
 
-#       print operations
-#       print templates
-        m = Model()
-        #TODO: Validation needs to be added here
-        m.Package = raw_input('PackageName: ')
-        m.Name = raw_input('ModelName: ')
+def appendInBlocks(filePath, blockValuesDict):
+    curBlockName = ''
+    f = open(filePath, 'r'); 
+    lines=f.readlines(); 
+    f.close()
+    newlines = []
+    curBlockName = ''
+    for line in lines:
+        if '{%block' in line.strip() or '{% block' in line:
+            mline = line.strip(); mline = mline.replace('{% block', '{%block')
+            fromIndex=mline.index('{%block')+len('{%block')
+            toIndex = fromIndex+mline[fromIndex:].index('%}')
+            curBlockName = mline[fromIndex:toIndex].strip()
+#           Append the lines if in the same block
+        if '{%endblock%}' in line.replace(' ',''):
+            if blockValuesDict.has_key(curBlockName):
+                for nline in blockValuesDict[curBlockName]:
+                    newlines.append(nline+'\n')
+            curBlockName = ''
+        newlines.append(line)
+    f = open(filePath, 'w')
+    f.writelines(newlines)
+    f.close()
+def importModel(package, name):
+    sys.path.append(settings.MODELS_DIR)
+    exec 'import '+basename(settings.MODELS_DIR)
+    moduleName =  basename(settings.MODELS_DIR)+'.'+package+'.'+name
+    print moduleName
+    mod = __import__(moduleName)
+    components = name.split('.')
+    for comp in components:
+        mod = getattr(mod, comp)
+    return mod
 
+def makeMvc(arg):
+    operations = [x[0] for x in settings.DEFAULT_OPERATIONS.iteritems() 
+                  if x[1].has_key('view') and x[1]['view']]
+    templates = [os.path.join(OPRTMPL,settings.DEFAULT_OPERATIONS[x]['method']+'.txt')
+                 for x in settings.DEFAULT_OPERATIONS.iterkeys()]
+    templates = list(set(templates))
+
+    m = Model()
+    #TODO: Validation needs to be added here
+    m.Package = raw_input('PackageName: ')
+    m.Name = raw_input('ModelName: ')
+    if 'm' in arg:
         m.InheritsFrom = inherits_from
         print 'Enter Property(Press Enter for End)'
         print 'Format', '[Name] [Type] <param1=value param1=value ...>'
         print 'Types', str([k for k in types.iterkeys()])
         i = 0
-        print '.'*13+'class '+m.Name+'('+m.InheritsFrom+'):'
+        print '.'*14+'class '+m.Name+'('+m.InheritsFrom+'):'
         p = True #Do-While
         while p:
             p = raw_input('Property'+str(i)+'>'+'.'*(9-len(str(i))))
-            self.SetProperties(p, m)
-            i+=1
-        
-        print self.Render(m, MTPath)
+            if setProperties(p, m):
+                i+=1
+        print render(m, MTPath)
         print "*"*20
-        
-        print self.Render(m, VTPath, {'operations':templates})
+    else:
+        m = importModel(m.Package, m.Name)
+        print m.parameters
+    
+    if 'v' in arg:
+        print render(m, VTPath, {'operations':templates})
         print "*"*20
-        
-        methods = map(lambda x: self.Render(m, x), templates)
-        print self.Render(m, CTPath, {'methods':methods})
-        
-        save = raw_input('Save(y/n)>')
-        if save.lower()=='y':
+    
+    if 'c' in arg:
+        methods = map(lambda x: render(m, x), templates)
+        print render(m, CTPath, {'methods':methods})
+    
+    save = raw_input('Save(y/n)>')
+    if save.lower()=='y':
+        if 'm' in arg:
             # Model setup
             modelFile = pjoin(settings.MODELS_DIR, m.Package+'Models.py')
             if not os.path.exists(modelFile):
@@ -108,28 +146,30 @@ class MVCHelper(object):
                 f.write('#'*50+'\n')
                 f.close()
             f= open(modelFile, 'a')
-            f.write(self.Render(m, MTPath))
+            f.write(render(m, MTPath))
             f.close()
             # End Model Setup
+        if 'v' in arg:
             #View Setup
             viewFolder = pjoin(settings.PAGE_VIEWS_DIR, m.Package)
             if not os.path.exists(viewFolder): os.makedirs(viewFolder)
             for k in operations:  
                 f = open(pjoin(viewFolder, m.Name+'_'+k+'.html'), 'w')
-                f.write(self.Render(m, VTPath, {'formTemplate': m.Name+'Form_'+k }))
+                f.write(render(m, VTPath, {'formTemplate': m.Name+'Form_'+k }))
                 f.close()
             #End Views Setup
             #Forms Setup
-            formsFolder = os.path.join(settings.FORM_VIEWS_DIR, m.Package)
+            formsFolder = pjoin(settings.FORM_VIEWS_DIR, m.Package)
             if not os.path.exists(formsFolder): os.makedirs(formsFolder)
             for k in operations:
-                f = open(os.path.join(formsFolder, m.Name+'Form_'+k+'.html'), 'w')
-                print k, 
-                f.write(self.Render(m, os.path.join(FRMTMPL, 'FormTemplate_'+k+'.txt'),{'op':k }))
+                f = open(pjoin(formsFolder, m.Name+'Form_'+k+'.html'), 'w')
+                # print k, 
+                f.write(render(m, os.path.join(FRMTMPL, 'FormTemplate_'+k+'.txt'),{'op':k }))
                 f.close()
             #End Form Setup
+        if 'c' in arg:
             #Controller Setup
-            controllerFile = os.path.join(settings.CONTROLLERS_DIR, m.Package+'Controllers.py')
+            controllerFile = pjoin(settings.CONTROLLERS_DIR, m.Package+'Controllers.py')
             if not os.path.exists(controllerFile):
                 f = open(controllerFile, 'w')
                 f.write('import settings\n')
@@ -139,81 +179,66 @@ class MVCHelper(object):
                 f.write('#'*50+"\n")
                 f.close()
             f= open(controllerFile, 'a')
-            f.write(self.Render(m, CTPath, {'methods':methods}))
+            f.write(render(m, CTPath, {'methods':methods}))
             f.close()
             #End Controller Setup
             #Edit HandlerMap
             f = open(settings.HANDLER_MAP_FILE, 'r'); 
-            lines=f.readlines(); 
-            f.close()
-            newlines = []
-            inUrlBlock = False
-            inImportsBlock = False
-            for line in lines:
-                if 'block ApplicationControllers' in line:
-                    inUrlBlock=True
-                if 'block imports' in line:
-                    inImportsBlock=True
-                if '{%endblock%}' in line.replace(' ','') and inUrlBlock:
-                    url='(\'/'+m.Package.replace('.','/')+'/'+m.Name+'\', '+m.Package+'Controllers.'+m.Name+'Controller),'
-                    newlines.append(url+'\n')
-                    inUrlBlock =False
-                if '{%endblock%}' in line.replace(' ','') and inImportsBlock:
-                    txt='from '+basename(settings.CONTROLLERS_DIR)+' import '+m.Package+'Controllers'
-                    newlines.append(txt)
-                    inImportsBlock =False
-                newlines.append(line)
-            f = open(settings.HANDLER_MAP_FILE, 'w')
-            f.writelines(newlines)
-            f.close()
+            blocks={'ApplicationControllers':
+                           ['(\'/'+m.Package.replace('.','/')+'/'+m.Name+'\', '+m.Package+'Controllers.'+m.Name+'Controller),',],
+                    'imports':
+                        ['from '+basename(settings.CONTROLLERS_DIR)+' import '+m.Package+'Controllers',]
+                   }
+            appendInBlocks(settings.HANDLER_MAP_FILE, blocks)
 
-    def Render(self, model, templatePath, additionalVars={}):
-        
-        str = open(templatePath, 'r').read() 
-        t = template.Template(str)
-        dict = {'m':model}
-        dict.update(djangoVars)
-        dict.update(mvcPaths)
-        dict.update(additionalVars)
-        context = template.Context(dict)
-        return t.render(context)
+def render(model, templatePath, additionalVars={}):
+    
+    str = open(templatePath, 'r').read() 
+    t = template.Template(str)
+    dict = {'m':model}
+    dict.update(djangoVars)
+    dict.update(mvcPaths)
+    dict.update(additionalVars)
+    context = template.Context(dict)
+    return t.render(context)
 
-    def SetProperties(self, p, model):
-        t = p.split(' ')
-        if len(t)>1:
-            prop = Property()
-            prop.Name = t[0]
-            prop.Options = []
-            if types.has_key(t[1]): 
-                prop.Type = types[t[1]]
-            else:
-                print 'Not valid property type'
-                return False
-            propStart = 2
-            if t[1]=='ref':
-                prop.Options.insert(0, t[propStart])
-                has_coll_name = reduce(lambda x,y: x==True or 
-                                       (x is str and 'collection_name' in x) or 
-                                        'collection_name' in y,
-                                       t[propStart])
-                if not has_coll_name:
-                    prop.Options.append('collection_name=\''+prop.Name.lower()+'_'+model.Name.lower()+'s\'')
-                propStart+=1
-            if len(t)>propStart:
-                for op in t[propStart:]:
-                    if '=' in op:
-                        prop.Options.append(t)
-                    else:
-                        print 'Not valid Option %s'%op
-                        return False
-            model.Properties.append(prop)
-            return True
+def setProperties(p, model):
+    t = p.split(' ')
+    if len(t)>1:
+        prop = Property()
+        prop.Name = t[0]
+        prop.Options = []
+        if types.has_key(t[1]): 
+            prop.Type = types[t[1]]
         else:
-            if len(t)==1 and  t[0]:
-                print 'Must provide Type:'
-                pprint.pprint(types)
+            print 'Not valid property type'
             return False
-def NewProject(toPath):
+        propStart = 2
+        if t[1]=='ref':
+            prop.Options.insert(0, t[propStart])
+            has_coll_name = reduce(lambda x,y: x==True or 
+                                   (x is str and 'collection_name' in x) or 
+                                    'collection_name' in y,
+                                   t[propStart])
+            if not has_coll_name:
+                prop.Options.append('collection_name=\''+prop.Name.lower()+'_'+model.Name.lower()+'s\'')
+            propStart+=1
+        if len(t)>propStart:
+            for op in t[propStart:]:
+                if '=' in op:
+                    prop.Options.append(op)
+                else:
+                    print 'Not valid Option %s'%op
+                    return False
+#        print model.Properties
+        model.Properties.append(prop)
+        return True
+    else:
+        if len(t)==1 and  t[0]:
+            print 'Must provide Type:'
+            pprint.pprint(types)
+        return False
+def newProject(toPath):
     doCopy = True
     if os.path.exists(toPath):
         overwrite = raw_input('Path Already Exists!, Do you want to overwrite?(y/n):')
@@ -222,12 +247,12 @@ def NewProject(toPath):
         else:
             doCopy = False
     if doCopy:
-        fromPath = os.path.dirname(abspath(__file__))
-        print fromPath,'=>', toPath
-        raw_input()
-        shutil.copytree(fromPath, toPath)
+        # print fromPath,'=>', toPath
+        # raw_input()
+        shutil.copytree(installPath, toPath)
         str = open(pjoin(toPath, 'app.yaml'), 'r').read()
-        str = str.replace('{{app_toPath}}', basename(toPath).lower())
+        str = str.replace('{{appname}}', basename(toPath).lower())
+        str = str.replace('{{handler}}', settings.HANDLER_MAP_FILE)
         f = open(os.path.join(toPath, 'app.yaml'), 'w')
         f.write(str)
         f.close()
@@ -241,12 +266,14 @@ def NewProject(toPath):
         str = open(pjoin(toPath, '.pydevproject'), 'r').read()
         str = str.replace('{{appname}}', basename(toPath))
         str = str.replace('{{appengine_path}}', settings.APPENGINE_PATH)
-        f = open(os.path.join(toPath, '.pydevproject'), 'w')
+        f = open(pjoin(toPath, '.pydevproject'), 'w')
         f.write(str)
         f.close()
         
+        os.rename(pjoin(toPath,'halicea.py'), pjoin(toPath,'manage.py'))
         os.remove(pjoin(toPath, '.InRoot'))
         print 'Project is Created!'
+
 def convertToTemplate(text,input={}):
     result = text
     for k, v in djangoVars.iteritems():
@@ -257,7 +284,7 @@ def convertToTemplate(text,input={}):
     result = result.replace('}-}','}}')
     return result
 
-def ConvertToReal(text,input={}):
+def convertToReal(text,input={}):
     result = text
     for k, v in djangoVars.iteritems():
         result=result.replace(k, v)
@@ -265,7 +292,7 @@ def ConvertToReal(text,input={}):
         result=result.replace(k, v)
     return result
 
-def GetTextFromPath(filePath):
+def getTextFromPath(filePath):
     templ = ''
     if filePath[-1]==']' and filePath.rindex('[')>0:
         fn= filePath
@@ -277,9 +304,9 @@ def GetTextFromPath(filePath):
     else:
         templ = open(filePath,'r').read()
     return templ
-def ExtractAgrs(paramsList):
+def extractAgrs(paramsList):
     return dict(map(lambda x:(x[:x.index('=')], x[x.index('=')+1:]), paramsList))
-def SaveTextToFile(txt, skipAsk=False, skipOverwrite=False):
+def saveTextToFile(txt, skipAsk=False, skipOverwrite=False):
     save = skipAsk and raw_input('Save to File?(y/n):')
     if save=='y':
         filePath = raw_input('Enter the Path>')
@@ -305,34 +332,71 @@ def SaveTextToFile(txt, skipAsk=False, skipOverwrite=False):
                     print 'File saved at \"%s\"!'%filePath
         else:
             f = open(p, 'w'); f.write(txt); f.close()
-        
+
+
+values =['project', 'mvc','vc','mc', 'mv','m','v','c','run','deploy']
+modelsStructure ={}
+commandsDict={'*':{'new':{'template':{}, 'real':{}}, 'project':{}, 
+                    'mvc':{}, 
+                    'deploy':{'--no_cookies':{},'--email=':{}}, 
+                    'run':{'--port=':{}}
+                    }
+                }
+mvcStates = {'package':{},'class':{}, 'prop':{'ref':modelsStructure} }
+
+completions={}
+currentState = ''
+def completer(text, state):
+    line = readline.get_line_buffer()
+    enterstate = line.split()
+    enterstate.insert(0,'*')
+    if line and not line[-1]==' ':
+        searchText = enterstate.pop()
+    else:
+        searchText = ''
+    finalDict = commandsDict
+    try:
+        for k in enterstate:
+            finalDict = finalDict[k]
+    except:
+        finalDict = {}
+    matches = [value for value in finalDict.iterkeys() if value.upper().startswith(searchText.upper())]
+    try:
+        return matches[state]
+    except IndexError:
+        return None
+
+readline.set_completer(completer)
+readline.parse_and_bind('tab: menu-complete')
 baseusage = """
 Usage haliceamvc.py [projectPath]
 Options: [create]
 """
 def main(args):
-    a = MVCHelper()
-    isInInstall = os.path.exists('.InRoot')
-    print isInInstall
+    isInInstall = os.path.exists(pjoin(installPath, '.InRoot'))
+#    isInInstall=True
     if isInInstall:
         if args[0]=='project' and len(args)>1:
-            NewProject(args[1])
+            newProject(args[1])
         else:
             print 'Not a valid command'
         return
     else:
-        if args[0]=='mvc':
-            a.MakeMVC(None)
+        if set(args[0]).issubset(set('mvc')):
+            makeMvc(args[0])
         elif args[0]=='run':
             options = ''
             if len(args)>1:
                 options = ' '.join(args[1:]) 
             command = pjoin(settings.APPENGINE_PATH, 'dev_appserver.py')+' '+os.path.abspath(os.path.dirname(__file__)+' '+options)
-            print command
+            # print command
             os.system(command)
         elif args[0]=='deploy':
-            command = pjoin(settings.APPENGINE_PATH, 'appcfg.py')+' update '+os.path.abspath(os.path.dirname(__file__))
-            print command
+            options = ''
+            if len(args)>1:
+                options = ' '.join(args[1:]) 
+            command = pjoin(settings.APPENGINE_PATH, 'appcfg.py')+' update '+options+' '+os.path.abspath(os.path.dirname(__file__))
+            # print command
             os.system(command)
         elif args[0]=='console':
             pass
@@ -342,19 +406,31 @@ def main(args):
     # can do this in install on local mode    
     if args[0]=='new' and len(args)>2:
         if args[1]=='template':
-            templ = GetTextFromPath(args[2])
-            input=len(args)>3 and ExtractAgrs(args[3:]) or {}
+            templ = getTextFromPath(args[2])
+            input=len(args)>3 and extractAgrs(args[3:]) or {}
             txt = convertToTemplate(templ, input)
             print txt; print 
-            SaveTextToFile(txt)
+            saveTextToFile(txt)
         elif args[1] =='real':
-            templ = GetTextFromPath(args[2])
-            input=len(args)>3 and ExtractAgrs(args[3:]) or {}
-            txt = ConvertToReal(templ, input)
+            templ = getTextFromPath(args[2])
+            input=len(args)>3 and extractAgrs(args[3:]) or {}
+            txt = convertToReal(templ, input)
             print txt; print
-            SaveTextToFile(txt)
+            saveTextToFile(txt)
         else:
             print 'Not valid type for new'
     #        os.system(os.path.join(settings.APPENGINE_PATH, 'dev_appserver.py')+' '+os.pardir(os.path.abspath(__file__))+' --port 8080')
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    try:
+        if len(sys.argv)>1:
+            main(sys.argv[1:])
+        else:
+            'Halicea Command Console is Opened'
+            while True:
+                args =raw_input('hal>').split()
+                if not(len(args)==1 and args[0]=='exit'):
+                    main(args)
+                else:
+                    break;
+    except KeyboardInterrupt:
+        print 'Halicea Command Console exited'

@@ -69,7 +69,7 @@ class Role(db.Model):
 
 class RoleAssciation(db.Model):
     Role = db.ReferenceProperty(Role, collection_name='role_role_associations')
-    Person = db.ReferenceProperty(Person,collecion_name='person_person_associations')
+    Person = db.ReferenceProperty(Person,collection_name='person_person_associations')
     
     @classmethod
     def CreateNew(cls, person, role, _isAutoInsert=False):

@@ -25,9 +25,7 @@ application = webapp.WSGIApplication(
  #{%endblock%}
  
  #{%block staticControllers%}
- ('/About', staticControllers.AboutController),
  ('/Links', staticControllers.LinksController),
- ('/Contact', staticControllers.ContactController),
  ('/NotAuthorized', staticControllers.NotAuthorizedController),
  #{%endblock%}
  ('/(.*)', staticControllers.NotExistsController),
