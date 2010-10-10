@@ -8,7 +8,8 @@ from os.path import join as pjoin
 from os.path import abspath
 from os.path import dirname
 from os.path import basename
-import readline
+if os.name!='nt':
+    import readline
 
 #Template Configuration
 installPath = dirname(abspath(__file__))
@@ -61,7 +62,27 @@ class Property(object):
     Required = 'False'
     Default = None
     
-
+def copy_directory(source, target, ignoreDirs=[], ignoreFiles=[]):
+    ignoreDirsSet =set(ignoreDirs)
+    ignoreFilesSet =set(ignoreFiles) 
+    if not os.path.exists(target):
+        os.mkdir(target)
+    for root, dirs, files in os.walk(source): 
+        ignoreCurrentDirs = list(ignoreDirsSet.intersection(set(dirs)))
+        
+        for t in ignoreCurrentDirs:
+            print 'Ignoring', t
+            dirs.remove(t)  # don't visit .svn directories           
+        for file in files:
+            if os.path.splitext(file)[-1] in ignoreFiles:
+                print 'skipped', file
+                continue
+            from_ = os.path.join(root, file)           
+            to_ = from_.replace(source, target, 1)
+            to_directory = os.path.split(to_)[0]
+            if not os.path.exists(to_directory):
+                os.makedirs(to_directory)
+            shutil.copyfile(from_, to_)
 def appendInBlocks(filePath, blockValuesDict):
     curBlockName = ''
     f = open(filePath, 'r'); 
@@ -85,6 +106,7 @@ def appendInBlocks(filePath, blockValuesDict):
     f = open(filePath, 'w')
     f.writelines(newlines)
     f.close()
+
 def importModel(package, name):
     sys.path.append(settings.MODELS_DIR)
     exec 'import '+basename(settings.MODELS_DIR)
@@ -249,7 +271,8 @@ def newProject(toPath):
     if doCopy:
         # print fromPath,'=>', toPath
         # raw_input()
-        shutil.copytree(installPath, toPath)
+        copy_directory(installPath, toPath, ['.git',], ['.gitignore','.pyc',])
+#        shutil.copytree(installPath, toPath)
         str = open(pjoin(toPath, 'app.yaml'), 'r').read()
         str = str.replace('{{appname}}', basename(toPath).lower())
         str = str.replace('{{handler}}', settings.HANDLER_MAP_FILE)
@@ -366,8 +389,9 @@ def completer(text, state):
     except IndexError:
         return None
 
-readline.set_completer(completer)
-readline.parse_and_bind('tab: menu-complete')
+if os.name!='nt':
+    readline.set_completer(completer)
+    readline.parse_and_bind('tab: menu-complete')
 baseusage = """
 Usage haliceamvc.py [projectPath]
 Options: [create]
