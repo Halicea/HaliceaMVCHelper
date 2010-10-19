@@ -330,15 +330,15 @@ def getTextFromPath(filePath):
 def extractAgrs(paramsList):
     return dict(map(lambda x:(x[:x.index('=')], x[x.index('=')+1:]), paramsList))
 def saveTextToFile(txt, skipAsk=False, skipOverwrite=False):
-    save = skipAsk and raw_input('Save to File?(y/n):')
-    if save=='y':
+    save = not skipAsk and raw_input('Save to File?(y/n):')
+    if save=='y' or skipAsk:
         filePath = raw_input('Enter the Path>')
         if os.path.exists(filePath):
             again = True
             while again:
                 again = False
-                p = skipOverwrite and raw_input('File already Exists, (o)verwrite, (a)ppend, (p)repend or (c)ancel?>')
-                if p=='o' or p==False:
+                p = not skipOverwrite and raw_input('File already Exists, (o)verwrite, (a)ppend, (p)repend or (c)ancel?>')
+                if p=='o' or skipOverwrite:
                     f = open(filePath, 'w'); f.write(txt); f.close()
                 elif p=='a':
                     f = open(filePath, 'a'); f.write(txt); f.close()
@@ -397,7 +397,28 @@ Usage haliceamvc.py [projectPath]
 Options: [create]
 """
 def main(args):
+        # can do this in install on local mode    
+    if args[0]=='new' and len(args)>2:
+        if args[1]=='template':
+            templ = getTextFromPath(args[2])
+            input=len(args)>3 and extractAgrs(args[3:]) or {}
+            txt = convertToTemplate(templ, input)
+            print txt; print 
+            saveTextToFile(txt)
+            return
+        elif args[1] =='real':
+            templ = getTextFromPath(args[2])
+            input=len(args)>3 and extractAgrs(args[3:]) or {}
+            txt = convertToReal(templ, input)
+            print txt; print
+            saveTextToFile(txt)
+            return
+        else:
+            print 'Not valid type for new'
+            return
+    #        os.system(os.path.join(settings.APPENGINE_PATH, 'dev_appserver.py')+' '+os.pardir(os.path.abspath(__file__))+' --port 8080')
     isInInstall = os.path.exists(pjoin(installPath, '.InRoot'))
+    
 #    isInInstall=True
     if isInInstall:
         if args[0]=='project' and len(args)>1:
@@ -427,23 +448,7 @@ def main(args):
         else:
             print 'Not Valid Command [mvc, run, console]'
         return
-    # can do this in install on local mode    
-    if args[0]=='new' and len(args)>2:
-        if args[1]=='template':
-            templ = getTextFromPath(args[2])
-            input=len(args)>3 and extractAgrs(args[3:]) or {}
-            txt = convertToTemplate(templ, input)
-            print txt; print 
-            saveTextToFile(txt)
-        elif args[1] =='real':
-            templ = getTextFromPath(args[2])
-            input=len(args)>3 and extractAgrs(args[3:]) or {}
-            txt = convertToReal(templ, input)
-            print txt; print
-            saveTextToFile(txt)
-        else:
-            print 'Not valid type for new'
-    #        os.system(os.path.join(settings.APPENGINE_PATH, 'dev_appserver.py')+' '+os.pardir(os.path.abspath(__file__))+' --port 8080')
+
 if __name__ == '__main__':
     try:
         if len(sys.argv)>1:
