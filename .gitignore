@@ -1,3 +1,8 @@
+Docs
+docs
+*.log
+*.htmldict
 .project
 .pydevproject
+.settings
 *.pyc

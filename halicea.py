@@ -1,19 +1,28 @@
 #!/usr/bin/env python
-import sys
-import os
-import shutil
-import settings
-import pprint
+import sys,shutil, os, subprocess, webbrowser, pprint
+from string import Template
 from os.path import join as pjoin
 from os.path import abspath
 from os.path import dirname
 from os.path import basename
+#-----------------
+from halicea.config import proj_settings as settings
+from halicea.consoleHelpers import ask
+from halicea.codeBlocksHelpers import HalCodeBlockLocator, InPythonBlockLocator
+from halicea.baseClasses import Block, Model,  Property
+from halicea.locators import *
+from halicea import config
+from halicea import packager
+
+cblPy = InPythonBlockLocator()
+cblHal = HalCodeBlockLocator()
+
 if os.name!='nt':
     import readline
 
 #Template Configuration
 installPath = dirname(abspath(__file__))
-TMPL_DIR = 'Templates'
+TMPL_DIR = pjoin(config.PROJ_LOC, 'Templates')
 FRMTMPL = pjoin(TMPL_DIR, 'FormTemplates')
 OPRTMPL = pjoin(TMPL_DIR, 'OperationTemplates')
 
@@ -22,13 +31,15 @@ VTPath = pjoin(TMPL_DIR, 'ViewTemplate.txt')
 CTPath = pjoin(TMPL_DIR, 'ControllerTemplate.txt')
 
 #Set django in pythonpath
-sys.path.append(settings.APPENGINE_PATH)
-sys.path.append(pjoin(settings.APPENGINE_PATH, 'lib', 'django' ))
-sys.path.append(pjoin(settings.APPENGINE_PATH, 'lib', 'webob' ))
-sys.path.append(pjoin(settings.APPENGINE_PATH, 'lib', 'yaml','lib' ))
+sys.path.append(config.APPENGINE_PATH)
+sys.path.append(pjoin(config.APPENGINE_PATH, 'lib'))
+sys.path.append(pjoin(config.APPENGINE_PATH, 'lib', 'django' ))
+sys.path.append(pjoin(config.APPENGINE_PATH, 'lib', 'webob' ))
+sys.path.append(pjoin(config.APPENGINE_PATH, 'lib', 'yaml','lib' ))
 ###
 os.environ['DJANGO_SETTINGS_MODULE']  = 'settings'
 from django import template
+from string import Template
 
 types ={'txt':'db.TextProperty',
         'str':'db.StringProperty',
@@ -48,34 +59,20 @@ mvcPaths = {"modelsPath":basename(settings.MODELS_DIR),
 libDir = 'lib'
 inherits_from = 'db.Model'
 
-class Model(object):
-    Package = ''
-    Name = ''
-    References = []
-    Properties = []
-    InheritsFrom = ''
 
-class Property(object):
-    Name = ''
-    Type = ''
-    Options = None
-    Required = 'False'
-    Default = None
-    
 def copy_directory(source, target, ignoreDirs=[], ignoreFiles=[]):
     ignoreDirsSet =set(ignoreDirs)
-    ignoreFilesSet =set(ignoreFiles) 
     if not os.path.exists(target):
         os.mkdir(target)
     for root, dirs, files in os.walk(source): 
         ignoreCurrentDirs = list(ignoreDirsSet.intersection(set(dirs)))
         
         for t in ignoreCurrentDirs:
-            print 'Ignoring', t
+            #print 'Ignoring', t
             dirs.remove(t)  # don't visit .svn directories           
         for file in files:
             if os.path.splitext(file)[-1] in ignoreFiles:
-                print 'skipped', file
+                #print 'skipped', file
                 continue
             from_ = os.path.join(root, file)           
             to_ = from_.replace(source, target, 1)
@@ -83,34 +80,18 @@ def copy_directory(source, target, ignoreDirs=[], ignoreFiles=[]):
             if not os.path.exists(to_directory):
                 os.makedirs(to_directory)
             shutil.copyfile(from_, to_)
-def appendInBlocks(filePath, blockValuesDict):
-    curBlockName = ''
-    f = open(filePath, 'r'); 
-    lines=f.readlines(); 
-    f.close()
-    newlines = []
-    curBlockName = ''
-    for line in lines:
-        if '{%block' in line.strip() or '{% block' in line:
-            mline = line.strip(); mline = mline.replace('{% block', '{%block')
-            fromIndex=mline.index('{%block')+len('{%block')
-            toIndex = fromIndex+mline[fromIndex:].index('%}')
-            curBlockName = mline[fromIndex:toIndex].strip()
-#           Append the lines if in the same block
-        if '{%endblock%}' in line.replace(' ',''):
-            if blockValuesDict.has_key(curBlockName):
-                for nline in blockValuesDict[curBlockName]:
-                    newlines.append(nline+'\n')
-            curBlockName = ''
-        newlines.append(line)
-    f = open(filePath, 'w')
-    f.writelines(newlines)
-    f.close()
+
+def tail(arr, cnt):
+    if len(arr)<cnt: 
+        return []
+    else: 
+        return arr[-cnt:]
+
 
 def importModel(package, name):
     sys.path.append(settings.MODELS_DIR)
-    exec 'import '+basename(settings.MODELS_DIR)
-    moduleName =  basename(settings.MODELS_DIR)+'.'+package+'.'+name
+    #exec 'import '+basename(settings.MODELS_DIR)
+    moduleName =  basename(settings.MODELS_DIR)+'.'+package+settings.MODEL_MODULE_SUFIX
     print moduleName
     mod = __import__(moduleName)
     components = name.split('.')
@@ -127,13 +108,15 @@ def makeMvc(arg):
 
     m = Model()
     #TODO: Validation needs to be added here
-    m.Package = raw_input('PackageName: ')
-    m.Name = raw_input('ModelName: ')
+    m.Package = ask('PackageName: ', '*')
+    print 'Package',m.Package
+    m.Name = ask('ModelName: ', '*')
+
     if 'm' in arg:
         m.InheritsFrom = inherits_from
-        print 'Enter Property(Press Enter for End)'
-        print 'Format', '[Name] [Type] <param1=value param1=value ...>'
-        print 'Types', str([k for k in types.iterkeys()])
+#        print 'Enter Property(Press Enter for End)'
+#        print 'Format', '[Name] [Type] <param1=value param1=value ...>'
+#        print 'Types', str([k for k in types.iterkeys()])
         i = 0
         print '.'*14+'class '+m.Name+'('+m.InheritsFrom+'):'
         p = True #Do-While
@@ -146,25 +129,25 @@ def makeMvc(arg):
     else:
         m = importModel(m.Package, m.Name)
         print m.parameters
-    
+
     if 'v' in arg:
         print render(m, VTPath, {'operations':templates})
         print "*"*20
-    
+
     if 'c' in arg:
         methods = map(lambda x: render(m, x), templates)
         print render(m, CTPath, {'methods':methods})
-    
-    save = raw_input('Save(y/n)>')
-    if save.lower()=='y':
+
+    if ask('Save?'):
         if 'm' in arg:
             # Model setup
-            modelFile = pjoin(settings.MODELS_DIR, m.Package+'Models.py')
+            modelFile = LocateModelModule(m.Package)
             if not os.path.exists(modelFile):
                 f = open(modelFile, 'w')
                 f.write('import settings\n')
                 f.write('from google.appengine.ext.db.djangoforms import ModelForm\n')
                 f.write('from google.appengine.ext import db\n')
+                f.write('from django.newforms import widgets, fields, extras\n')
                 f.write('#'*50+'\n')
                 f.close()
             f= open(modelFile, 'a')
@@ -173,7 +156,7 @@ def makeMvc(arg):
             # End Model Setup
         if 'v' in arg:
             #View Setup
-            viewFolder = pjoin(settings.PAGE_VIEWS_DIR, m.Package)
+            viewFolder = LocatePagesDir(m.Package)
             if not os.path.exists(viewFolder): os.makedirs(viewFolder)
             for k in operations:  
                 f = open(pjoin(viewFolder, m.Name+'_'+k+'.html'), 'w')
@@ -181,7 +164,7 @@ def makeMvc(arg):
                 f.close()
             #End Views Setup
             #Forms Setup
-            formsFolder = pjoin(settings.FORM_VIEWS_DIR, m.Package)
+            formsFolder = LocateFormsDir(m.Package)
             if not os.path.exists(formsFolder): os.makedirs(formsFolder)
             for k in operations:
                 f = open(pjoin(formsFolder, m.Name+'Form_'+k+'.html'), 'w')
@@ -191,7 +174,7 @@ def makeMvc(arg):
             #End Form Setup
         if 'c' in arg:
             #Controller Setup
-            controllerFile = pjoin(settings.CONTROLLERS_DIR, m.Package+'Controllers.py')
+            controllerFile = LocateControllerModule(m.Package)
             if not os.path.exists(controllerFile):
                 f = open(controllerFile, 'w')
                 f.write('import settings\n')
@@ -205,13 +188,31 @@ def makeMvc(arg):
             f.close()
             #End Controller Setup
             #Edit HandlerMap
-            f = open(settings.HANDLER_MAP_FILE, 'r'); 
-            blocks={'ApplicationControllers':
-                           ['(\'/'+m.Package.replace('.','/')+'/'+m.Name+'\', '+m.Package+'Controllers.'+m.Name+'Controller),',],
-                    'imports':
-                        ['from '+basename(settings.CONTROLLERS_DIR)+' import '+m.Package+'Controllers',]
-                   }
-            appendInBlocks(settings.HANDLER_MAP_FILE, blocks)
+            
+            handlerMap = Block.loadFromFile(settings.HANDLER_MAP_FILE, cblPy)
+            appControllers = handlerMap['ApplicationControllers']
+            imports = handlerMap['imports']
+            #Create the block if it does not exists
+            blockName = m.Package+settings.CONTROLLER_MODULE_SUFIX
+            if not appControllers[blockName]:
+                appControllers.append(Block.createEmptyBlock(blockName, cblPy))
+
+            myBlock = appControllers[blockName]
+            
+            templ = Template("""('/${model}', ${controller}),""")
+            urlEntry =templ.substitute(model=BasePathFromName(m.FullName, '/'),
+                                       controller=m.Package+settings.CONTROLLER_MODULE_SUFIX+'.'+m.Name+settings.CONTROLLER_CLASS_SUFIX
+                                       )
+            myBlock.append(Block.createLineBlock(urlEntry))
+            
+            importsLine= 'from '+basename(settings.CONTROLLERS_DIR)+' import '+m.Package+settings.CONTROLLER_MODULE_SUFIX
+            if not imports[importsLine]:
+                imports.append(Block.createLineBlock(importsLine))
+            
+            f = open(settings.HANDLER_MAP_FILE, 'w')
+            f.write(str(handlerMap))
+            f.close()
+    m=None
 
 def render(model, templatePath, additionalVars={}):
     
@@ -263,38 +264,36 @@ def setProperties(p, model):
 def newProject(toPath):
     doCopy = True
     if os.path.exists(toPath):
-        overwrite = raw_input('Path Already Exists!, Do you want to overwrite?(y/n):')
-        if overwrite == 'y':
-            shutil.rmtree(toPath)#os.makedirs(toPath)
+        overwrite = ask('Path Already Exists!, Do you want to overwrite?')
+        if overwrite:
+            shutil.rmtree(toPath) #os.makedirs(toPath)
         else:
             doCopy = False
     if doCopy:
-        # print fromPath,'=>', toPath
-        # raw_input()
-        copy_directory(installPath, toPath, ['.git',], ['.gitignore','.pyc',])
-#        shutil.copytree(installPath, toPath)
-        str = open(pjoin(toPath, 'app.yaml'), 'r').read()
+        copy_directory(installPath, toPath, ['.git',], ['.gitignore','.pyc','.InRoot',])
+        str = open(pjoin(toPath,'src', 'app.yaml'), 'r').read()
         str = str.replace('{{appname}}', basename(toPath).lower())
-        str = str.replace('{{handler}}', settings.HANDLER_MAP_FILE)
-        f = open(os.path.join(toPath, 'app.yaml'), 'w')
+        str = str.replace('{{handler}}', basename(settings.HANDLER_MAP_FILE))
+        f = open(os.path.join(toPath,'src', 'app.yaml'), 'w')
         f.write(str)
         f.close()
-        
+
         str = open(pjoin(toPath, '.project'), 'r').read()
         str = str.replace('{{appname}}', basename(toPath))
         f = open(os.path.join(toPath, '.project'), 'w')
         f.write(str)
         f.close()
-        
+
         str = open(pjoin(toPath, '.pydevproject'), 'r').read()
         str = str.replace('{{appname}}', basename(toPath))
         str = str.replace('{{appengine_path}}', settings.APPENGINE_PATH)
         f = open(pjoin(toPath, '.pydevproject'), 'w')
         f.write(str)
         f.close()
-        
-        os.rename(pjoin(toPath,'halicea.py'), pjoin(toPath,'manage.py'))
-        os.remove(pjoin(toPath, '.InRoot'))
+
+        if os.path.exists(pjoin(toPath, 'halicea.py')):
+            os.rename(pjoin(toPath,'halicea.py'), pjoin(toPath,'manage.py'))
+
         print 'Project is Created!'
 
 def convertToTemplate(text,input={}):
@@ -327,18 +326,21 @@ def getTextFromPath(filePath):
     else:
         templ = open(filePath,'r').read()
     return templ
+
 def extractAgrs(paramsList):
     return dict(map(lambda x:(x[:x.index('=')], x[x.index('=')+1:]), paramsList))
+
 def saveTextToFile(txt, skipAsk=False, skipOverwrite=False):
-    save = not skipAsk and raw_input('Save to File?(y/n):')
-    if save=='y' or skipAsk:
+    save = skipAsk and ask('Save to File?')
+    if save:
         filePath = raw_input('Enter the Path>')
         if os.path.exists(filePath):
             again = True
             while again:
                 again = False
-                p = not skipOverwrite and raw_input('File already Exists, (o)verwrite, (a)ppend, (p)repend or (c)ancel?>')
-                if p=='o' or skipOverwrite:
+                p = skipOverwrite and ask('File already Exists, (o)verwrite, (a)ppend, (p)repend or (c)ancel?>',
+                                          {'o':'o', 'a':'a','c':'c','p':'p',})
+                if p=='o' or p==False:
                     f = open(filePath, 'w'); f.write(txt); f.close()
                 elif p=='a':
                     f = open(filePath, 'a'); f.write(txt); f.close()
@@ -356,11 +358,12 @@ def saveTextToFile(txt, skipAsk=False, skipOverwrite=False):
         else:
             f = open(p, 'w'); f.write(txt); f.close()
 
-
+#AutoCompletion
 values =['project', 'mvc','vc','mc', 'mv','m','v','c','run','deploy']
 modelsStructure ={}
 commandsDict={'*':{'new':{'template':{}, 'real':{}}, 'project':{}, 
-                    'mvc':{}, 
+                    'mvc':{},
+                    'del':{'package':{}, 'model':{}}, 
                     'deploy':{'--no_cookies':{},'--email=':{}}, 
                     'run':{'--port=':{}}
                     }
@@ -388,7 +391,51 @@ def completer(text, state):
         return matches[state]
     except IndexError:
         return None
-
+def delPackage(pname):
+    pmfile = LocateModelModule(pname)
+    pcfile = LocateControllerModule(pname)
+    pvdir = LocatePagesDir(pname)
+    pfdir =LocateFormsDir(pname)
+    handlermapblock = pname+settings.CONTROLLER_MODULE_SUFIX
+    handlermapsuperBlock = 'ApplicationControllers'
+    handlermapimport = 'from '+basename(settings.CONTROLLERS_DIR)+' import '+pname+settings.CONTROLLER_MODULE_SUFIX
+    
+    print 'This paths will be permanently deleted'
+    pprint.pprint({'Models Module':pmfile, 
+                   'Controllers Module': pcfile,
+                   'Views in %s'%pvdir:os.path.exists(pvdir) and os.listdir(pvdir) or 'None', 
+                   'Form Views in %s'%pfdir:os.path.exists(pfdir) and  os.listdir(pfdir) or 'None',
+                })    
+    if ask('Are you sure you want to delete the Package %s?'%pname):
+        for item in [pmfile, pcfile, pvdir, pfdir]:
+            if os.path.exists(item):
+                if os.path.isdir(item):
+                    print 'removing %s directory'%item
+                    shutil.rmtree(item)
+                else:
+                    print 'removing %s file'%item
+                    os.remove(item)
+            else:
+                print 'Path %s does not exist'%item
+        handlerMap = Block.loadFromFile(settings.HANDLER_MAP_FILE, cblPy)
+        impLine = handlerMap['imports'][handlermapimport]
+        #remove the import
+        if impLine:
+            handlerMap['imports'].remove(impLine)
+        else:
+            print 'import \'', handlermapimport, '\'does not exists'
+        #Remove the urlMap Block
+        mapBl = handlerMap['ApplicationControllers'][handlermapblock]
+        if mapBl:
+            handlerMap['ApplicationControllers'].remove(mapBl)
+        f = open(settings.HANDLER_MAP_FILE, 'w')
+        f.write(str(handlerMap))
+        f.close()
+        print 'Package %s was removed'%pname
+    else:
+        pass
+def delMvc(mvc, modelFullName):
+    pass
 if os.name!='nt':
     readline.set_completer(completer)
     readline.parse_and_bind('tab: menu-complete')
@@ -397,7 +444,7 @@ Usage haliceamvc.py [projectPath]
 Options: [create]
 """
 def main(args):
-        # can do this in install on local mode    
+    # can do this in install on local mode    
     if args[0]=='new' and len(args)>2:
         if args[1]=='template':
             templ = getTextFromPath(args[2])
@@ -416,43 +463,69 @@ def main(args):
         else:
             print 'Not valid type for new'
             return
-    #        os.system(os.path.join(settings.APPENGINE_PATH, 'dev_appserver.py')+' '+os.pardir(os.path.abspath(__file__))+' --port 8080')
     isInInstall = os.path.exists(pjoin(installPath, '.InRoot'))
-    
 #    isInInstall=True
     if isInInstall:
         if args[0]=='project' and len(args)>1:
             newProject(args[1])
         else:
             print 'Not a valid command'
-        return
-    else:
+        #return
+    if True: #else:
         if set(args[0]).issubset(set('mvc')):
             makeMvc(args[0])
+        elif args[0]=='del' and len(args)>=2:
+            if args[1]=='package':
+                pname = ''
+                if len(args)==2:
+                    pname = raw_input('Enter Package Name: ')
+                else:
+                    pname=args[2]
+                delPackage(pname)
+            elif set(args[1]).issubset(set('mvc')):
+                cname = ''
+                pname = ''
+                if len(args)==2:
+                    cname=raw_input('EnterTheModelClass :')
+                else:
+                    cname=args[2]
+                delMvc(args[1], cname)
         elif args[0]=='run':
             options = ''
             if len(args)>1:
-                options = ' '.join(args[1:]) 
-            command = pjoin(settings.APPENGINE_PATH, 'dev_appserver.py')+' '+os.path.abspath(os.path.dirname(__file__)+' '+options)
+                options = ' '.join(args[1:])
+            command = Template('python $appserver $proj $options').substitute(
+                                    appserver = pjoin(settings.APPENGINE_PATH, 'dev_appserver.py'),
+                                    proj=config.PROJ_LOC,
+                                    options = options)
             # print command
-            os.system(command)
+            subprocess.Popen(command, shell=True)
+            webbrowser.open('http://localhost:8080')
+        elif args[0]=='pack' and len(args)>3:
+            if args[1]=='package':
+                packager.pack(args[2], args[3])
+        elif args[0]=='unpack' and len(args)>=3:
+            if args[1]=='package':
+                packager.unpack(args[2], args[3])
         elif args[0]=='deploy':
             options = ''
             if len(args)>1:
-                options = ' '.join(args[1:]) 
-            command = pjoin(settings.APPENGINE_PATH, 'appcfg.py')+' update '+options+' '+os.path.abspath(os.path.dirname(__file__))
-            # print command
-            os.system(command)
+                options = ' '.join(args[1:])
+            command = Template('python $appcfg update $options $proj').substitute(
+                                  appcfg = pjoin(settings.APPENGINE_PATH, 'appcfg.py'),
+                                  proj = config.PROJ_LOC,
+                                  options = options)
+            subprocess.Popen(command, Shell=True)
         elif args[0]=='console':
             pass
         else:
             print 'Not Valid Command [mvc, run, console]'
         return
-
 if __name__ == '__main__':
+    sysargs = sys.argv
     try:
-        if len(sys.argv)>1:
-            main(sys.argv[1:])
+        if len(sysargs)>1:
+            main(sysargs[1:])
         else:
             'Halicea Command Console is Opened'
             while True:

@@ -1,0 +1,42 @@
+{% extends darkness_base %}
+{% block styles %}
+{{block.super}}
+<link href="/styles/ui-blackgreen/jquery-ui-1.7.2.custom.css" rel="stylesheet" type="text/css" media="screen" />
+<link href="/styles/mbContainer/css/mbContainer.css" rel="stylesheet" type="text/css" media="screen" />
+{% endblock %}
+
+{% block scripts %}
+{{block.super}}
+<script type="text/javascript" src="/jscripts/jquery-1.4.min.js"></script>
+<script type="text/javascript" src="/jscripts/jquery-ui-1.7.2.custom.min.js"></script>
+<script type="text/javascript" src="/jscripts/jquery.form.js"></script>
+{% endblock %}
+{% block analitics %}
+{%endblock%}
+{% block top_logo %}
+ <div style="float: left">
+        <img class="ui-corner-all" src="http://2.bp.blogspot.com/_ar6Mn3tRuAI/S9x7HOs3VFI/AAAAAAAAAHo/hbkEQFNdtds/S259/VLYM+Logo.jpg" 
+        style="padding: 10; margin-left: 20px; margin-top: 13px"; height="77px"/>
+        <img class="ui-corner-all" src="/images/SIMONA.png" height="77px"/>
+ </div>
+ <div   style="float: left; color: white; font-size:50px; 
+        margin-top:15px; margin-bottom:-1;margin-right:50px;padding: 10;">
+    Tinirlji pi cicior</div>
+{% endblock %}
+{% block top_menu %}
+	{% include mnTopMenu %}
+{% endblock %}
+
+{% block login_menu %}
+	{% include blLogin %}
+{% endblock %}
+{% block status %}
+	{% if status %}
+<div class="ui-state-error" style="text-align: center">
+	{{status}}
+</div>
+    {% endif %}
+{% endblock %}
+{% block sidebar %}
+	{% include mnBlogSidebar %}
+{% endblock %}
