@@ -4,37 +4,38 @@ from codeBlocksHelpers import *
 from locators import *
 
 class Model(object):
-    Package = ''
-    Name = ''
-    References = []
-    Properties = []
-    InheritsFrom = ''
-    SourceCode = ''
+    def __init__(self):
+        self.Package = ''
+        self.Name = ''
+        self.References = []
+        self.Properties = []
+        self.InheritsFrom = ''
+        self.SourceCode = ''
     @property
     def FullName(self):
         return self.Package+'.'+self.Name
 
 class Property(object):
-    Name = ''
-    Type = ''
-    Options = None
-    Required = 'False'
-    Default = None
+    def __init__(self):
+        self.Name = ''
+        self.Type = ''
+        self.Options = None
+        self.Required = 'False'
+        self.Default = None
 
 class Package(object):
-    Name = ''
-    SubPackages = []
-    ModelModules =[]
-    Views = []
-    Forms = []
-    ControllerModules = []
-    StaticData =[]
-    JScripts = []
-    Bases =[]
-    Blocks = []
     def __init__(self, name):
         self.Name =name
-        
+        self.SubPackages = []
+        self.ModelModules =[]
+        self.Views = []
+        self.Forms = []
+        self.ControllerModules = []
+        self.StaticData =[]
+        self.JScripts = []
+        self.Bases =[]
+        self.Blocks = []
+
     @staticmethod
     def PathFromName(packageFullName):
         return os.path.join(packageFullName.split('.'))
@@ -56,7 +57,7 @@ class Package(object):
 class BlockTypes(object):
     LINE = 1
     BLOCK = 2
-    
+
 class Block(object):
     Parrent = None
     Children = []
@@ -95,18 +96,36 @@ class Block(object):
                 blockqueue.pop()
                 currentBlock = rt['.'.join(blockqueue[1:])]
         return rt
-    
+    def createEmptyBlocks(self, blockName, cbl=HalCodeBlockLocator()):
+        parts= blockName.split('.')
+        curBlock = self
+        for p in parts:
+            if not curBlock[p]:
+                curBlock.append(Block.createEmptyBlock(p, cbl))
+            curBlock = curBlock[p]
+    @staticmethod
+    def loadFromText(self, text, cbl=HalCodeBlockLocator(), renderer=None, renderDict={}):
+        txt =text
+        if renderer:
+            txt = renderer(renderDict)
+        return Block.loadFromLines(txt.split('\n'), 'root', cbl)
     @staticmethod
     def createLineBlock(line):
         return Block(None, line, blType=BlockTypes.LINE)
 
     @staticmethod
-    def loadFromFile(filePath, cbl=HalCodeBlockLocator()):
-        f = open(filePath, 'r')
-        lines = [x.replace('\n', '') for x in f.readlines()]
+    def loadFromFile(filePath, cbl=HalCodeBlockLocator(), renderer=None, renderDict={}):
+        txt = ''
+        if renderer:
+            txt = renderer(filePath, renderDict)
+        else:
+            txt = open(filePath, 'r').read()
+        lines = txt.split('\n')
         return Block.loadFromLines(lines, filePath, cbl)
+    def saveToFile(self, filePath, mode='w'):
+        f = open(filePath, mode)
+        f.write(str(self))
         f.close()
-    
     def __init__(self, parrent, name, blType=1):
         self.Parrent = parrent
         self.Children = []
@@ -134,7 +153,11 @@ class Block(object):
                 self.Children.append(element)
         else:
             raise Exception('Invalid object passed')
-    
+    def appendLines(self, lines=[]):
+        for line in lines:
+            self.append(Block.createLineBlock(line))
+    def appendText(self, text):
+        self.appendLines(text.split('\n'))
     def insert(self, index, element):
         if isinstance(element, Block):
             element.Parrent = self
@@ -147,7 +170,9 @@ class Block(object):
             return self
         parts = name.split('.'); parts.reverse()
         if len(parts)>1:
-            return self[parts[-1]]['.'.join(parts[:-1])]
+            p = self[parts[-1]]
+            if p:
+                return p['.'.join(parts[:-1])]
         else:
             for child in self.Children:
                 if child.Name == parts[0]:

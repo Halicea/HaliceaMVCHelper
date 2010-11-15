@@ -1,4 +1,3 @@
-{%if m.Package %}from {{modelsPath}}.{{m.Package}}Models import {{m.Name}}, {{m.Name}}Form {%endif%}
 class {{m.Name}}Controller(hrh):
     def SetOperations(self):
         self.operations = settings.DEFAULT_OPERATIONS

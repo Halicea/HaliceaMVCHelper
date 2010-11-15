@@ -9,28 +9,31 @@ from Models.BaseModels import Person
 #from lib.appengine_utilities import sessions
 from lib.gaesessions import get_current_session
 import lib.paths as paths
-
 import settings
+import Models, Forms
+from lib.halicea import defaultControllerMethods as dcm
+from lib.halicea.Magic import MagicSet
 from os import path
 import os
 from google.appengine.ext.webapp import template
 from lib.NewsFeed import NewsFeed
 
-__mode__ = 'Debug'
-
+templateGroups = {'form':settings.FORM_VIEWS_DIR, 
+                 'page':settings.PAGE_VIEWS_DIR,
+                 'block':settings.BLOCK_VIEWS_DIR,
+                 'base':settings.BASE_VIEWS_DIR,}
 
 class RequestParameters(object):
     def __init__(self, request):
         self.request = request
     def __getattr__(self, name):
         return self.request.get(name)
-    
+
 class HalRequestHandler( webapp.RequestHandler ):
     params = None
     operations = {}
     TemplateDir = settings.PAGE_VIEWS_DIR
     TemplateType = ''
-    quote = None
     status = None
     isAjax=False
     op = None
@@ -43,29 +46,25 @@ class HalRequestHandler( webapp.RequestHandler ):
         return self.__template__
 
     def SetTemplate(self,templateGroup=None, templateType=None, templateName=None):
+        bn = MagicSet.baseName(self)
+#        templateTypes = The specific modelFullName
         if not templateGroup:
             self.TemplateDir =settings.PAGE_VIEWS_DIR
         else:
-            c = templateGroup
-            if c=='form': self.TemplateDir = settings.FORM_VIEWS_DIR
-            elif c=='page': self.TemplateDir = settings.PAGE_VIEWS_DIR
-            elif c=='block': self.TemplateDir =settings.BLOCK_VIEWS_DIR
-            else: raise Exception('Template Group does not exists')
-            
+            self.TemplateDir = templateGroups[templateGroup]
         if not templateType:
-            self.TemplateType = self.__class__.__module__[self.__class__.__module__.index('.')+1:]
-            self.TemplateType = self.TemplateType[:self.TemplateType.rindex(settings.CONTROLLER_MODULE_SUFIX)]
+            self.TemplateType  = bn[:bn.rindex('.')].replace('.', path.sep)
         else:
             self.TemplateType = templateType.replace('.', path.sep)
-            
         if not templateName: #default name will be set
-            self.__template__ = self.__class__.__name__
-            self.__template__ = self.__template__[:self.__template__.rindex('Controller')]+".html"
-            self.__template__ = os.path.join(self.TemplateDir, self.TemplateType, self.__template__)
+            self.__template__ = os.path.join(self.TemplateDir, self.TemplateType, bn[bn.rindex('.')+1:])
+            if self.op:
+                self.__template__ += '_'+self.op
+            self.__template__+=settings.VIEW_EXTENSTION
         else:
             self.__template__ = os.path.join(self.TemplateDir, self.TemplateType, templateName)
+        
         self.__templateIsSet__ = True
-
     Template =property(getTemplate)
     def __getSession__(self):
         return get_current_session()
@@ -103,7 +102,8 @@ class HalRequestHandler( webapp.RequestHandler ):
         self.isAjax = ((request.headers.get('HTTP_X_REQUESTED_WITH')=='XMLHttpRequest') or (request.headers.get('X-Requested-With')=='XMLHttpRequest'))
         self.request = request
         self.response = response
-        webapp.RequestHandler.__init__( self )
+        self.params = RequestParameters(self.request)
+        webapp.RequestHandler.__init__(self)
         #self.request = super(MyRequestHandler, self).request
         if not self.isAjax: self.isAjax = self.g('isAjax')=='true'
         # set the status variable
@@ -111,46 +111,47 @@ class HalRequestHandler( webapp.RequestHandler ):
             self.status = self.session.pop('status')
         self.operations = {}
         self.SetOperations()
-# Methods
+    # Methods
     def g(self, item):
         return self.request.get(item)
 
 #   the method by the operation
-    def __route__(self, method, *args):
+    def __route__(self, method, *args, **kwargs):
         self.method = method
-        self.params = RequestParameters(self.request)
-        
         self.op = self.g('op')
-        if self.op in self.operations.iterkeys():
-            getattr(self, self.operations[self.op]['method'])()
+        outresult = 'No Result returned'
+        if self.operations.has_key(self.op):
+            if isinstance(self.operations[self.op]['method'], str):
+                outresult = getattr(self, self.operations[self.op]['method'])(self, *args, **kwargs)
+            else:
+                outresult = self.operations[self.op]['method'](self, *args, **kwargs)
         else:
-            getattr(self, self.operations['default']['method'])()
+            if isinstance(self.operations['default']['method'], str):
+                outresult = getattr(self, self.operations[self.op]['method'])(self, *args, **kwargs)
+            else:
+                outresult = self.operations['default']['method'](self, *args, **kwargs)
+        if outresult!=None:
+            self.respond(outresult)
+        #otherwise we have been redirected
+    def get(self, *args, **kwargs):
+        self.__route__('GET', *args, **kwargs)
+    def post(self, *args, **kwargs):
+        self.__route__('POST', *args, **kwargs)
 
-    def get(self, *args):
-        self.__route__('GET')
-
-    def post(self, *args):
-        self.__route__('POST')
-        
     def render_dict( self, basedict ):
         result = dict( basedict )
         if result.has_key( 'self' ):
             result.pop( 'self' )
         if not result.has_key( 'status' ):
             result['status'] = self.status
-        if not result.has_key( 'quote' ):
-            result['quote'] = self.quote
-        if not result.has_key( 'mode' ):
-            result['mode'] = __mode__
         if not result.has_key('current_user'):
             result['current_user'] = self.User
         if not result.has_key('op'):
             result['op'] = self.op
-        #update the variables about the references
+        #update the variables
         result.update(paths.GetBasesDict())
-        result.update(paths.GetMenusDict())
         result.update(paths.GetBlocksDict())
-        result.update(paths.getViewsDict(path.join(settings.FORM_VIEWS_DIR, self.TemplateType))) ##end
+        result.update(paths.GetFormsDict(path.join(settings.FORM_VIEWS_DIR, self.TemplateType))) ##end
         return result
     def respond( self, item={}, *args ):
         #self.response.out.write(self.Template+'<br/>'+ dict)
@@ -164,16 +165,15 @@ class HalRequestHandler( webapp.RequestHandler ):
         elif isinstance(item,db.Model):
             self.response.out.write(item.to_xml())
         elif isinstance(item, NewsFeed):
-            import manage
             self.response.headers["Content-Type"] = "application/xml; charset=utf-8"
-            template.render(os.path.join(manage.TMPL_DIR, 'RssTemplate.txt'), 
+            template.render(os.path.join(settings.TEMPLATE_DIRS, 'RssTemplate.txt'), 
                             {'m':item}, debug=settings.DEBUG)
         else:
             self.response.out.write(str(item))
     def redirect_login( self ):
         self.redirect( '/Login' )
     def respond_static(self, text):
-        self.response.out.write(text)    
+        self.response.out.write(text)
     def redirect( self, uri, postargs={}, permanent=False ):
         innerdict = dict( postargs )
         if innerdict.has_key( 'status' ):
@@ -193,4 +193,3 @@ class HalRequestHandler( webapp.RequestHandler ):
                 webapp.RequestHandler.redirect( self, uri+ '&' + params, permanent )
         else:
             webapp.RequestHandler.redirect( self, uri, permanent )
-

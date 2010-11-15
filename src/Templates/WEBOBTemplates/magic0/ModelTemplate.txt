@@ -13,9 +13,5 @@ class {{m.Name}}({{m.InheritsFrom}}):
     def __str__(self):
         #TODO: Change the method to represent something meaningful
         return 'Change __str__ method' 
-class {{m.Name}}Form(ModelForm):
-    class Meta():
-        model={{m.Name}}
-        #exclude
 ## End {{m.Name}}
-##**************************
+

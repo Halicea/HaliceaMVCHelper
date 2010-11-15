@@ -35,7 +35,8 @@ $blindent{%endblock%}
         return line.replace(' ','').find('{%endblock%}')>=0
 
 class InPythonBlockLocator(BlockLocator):
-    blockTemplate = '''$blindent#{%block $blockname%}
+    blockTemplate = \
+'''$blindent#{%block $blockname%}
 #content#
 $blindent#{%endblock%}
 '''

@@ -1,13 +1,12 @@
 
 import Models.BaseModels as base
-from lib.HalRequestHandler import HalRequestHandler as hrh
+from lib.halicea.HalRequestHandler import HalRequestHandler as hrh
 from google.appengine.api import memcache
 from lib import messages
 from lib.decorators import *
 import settings
-from Models.BaseModels import RoleAssociation, RoleAssociationForm 
-from Models.BaseModels import Role, RoleForm 
-from Models.BaseModels import Person, WishList
+from Models.BaseModels import RoleAssociation, Person, Role, WishList
+from Forms.BaseFroms import  RoleAssociationForm, PersonForm , RoleForm, WishListForm
 
 class LoginController( hrh ):
     @ErrorSafe()
@@ -19,7 +18,7 @@ class LoginController( hrh ):
                 self.respond()
         else:
             self.redirect( '/' )
-            
+
     def post( self ):
         uname = self.request.get( 'Email' )
         passwd = self.request.get( 'Password' )
@@ -73,7 +72,6 @@ class AddUserController( hrh ):
         except Exception, ex:
             self.status = ex
             self.redirect(AddUserController.get_url())
-
 
 class RoleController(hrh):
     def SetOperations(self):
@@ -201,14 +199,12 @@ class RoleAssociationController(hrh):
             result = {'op':'upd', 'RoleAssociationForm': form}
             self.respond(result)
 
-from Models.BaseModels import WishList, WishListForm 
 class WishListController(hrh):
     def SetOperations(self):
         self.operations = settings.DEFAULT_OPERATIONS
         ##make new handlers and attach them
         #self.operations.update({'xml':{'method':'xmlCV'}})
-        self.operations['default'] = {'method':'list'}
-    
+        self.operations['default'] = {'list':self.list}
     def list(self):
         self.SetTemplate(templateName='WishList_lst.html')
         results =None

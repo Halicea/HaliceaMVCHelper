@@ -1,4 +1,4 @@
-from lib.HalRequestHandler import HalRequestHandler as hrh
+from lib.halicea.HalRequestHandler import HalRequestHandler as hrh
 
 class LinksController( hrh ):
     def get( self ):
@@ -14,7 +14,7 @@ class ContactController(hrh):
         self.respond()
 class NotExistsController( hrh ):
     def get( self, page_address ):
-        if self.request.get('ajax'):
+        if self.isAjax:
             self.response.out.write("Ajax navigate to wrong address!")
         else:
             self.respond()

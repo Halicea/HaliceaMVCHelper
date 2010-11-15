@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import settings
-from google.appengine.ext.db.djangoforms import ModelForm
 from google.appengine.ext import db
-from django.newforms import widgets, fields, extras
+
 import datetime as dt
 ###########
 
@@ -62,9 +61,6 @@ class Person(db.Model):
         return u
     def __str__(self):
         return self.Name+' '+self.Surname
-class PersonForm(ModelForm):
-    class Meta():
-        model = Person
 ## End Person
 ##**************************
 
@@ -85,11 +81,6 @@ class WishList(db.Model):
     
     def __str__(self):
         return self.Wish+'-'+self.Owner.__str__()
-class WishListForm(ModelForm):
-#    DateAdded = fields.DateField(widget=widgets.TextInput(attrs={'class':'date'}))
-    class Meta():
-        model=WishList
-        exclude = ['Owner']
 ## End WishList
 ##**************************
 
@@ -107,9 +98,7 @@ class Role(db.Model):
         return result
     def __str__(self):
         return self.RoleName 
-class RoleForm(ModelForm):
-    class Meta():
-        model=Role
+
 ## End Role
 ##**************************
 
@@ -127,12 +116,7 @@ class RoleAssociation(db.Model):
         return result
     def __str__(self):
         return self.Role.RoleName #+'-'+self.Person and self.Person.Name or 'None'+' '+self.Person and self.Person.Surname or 'None'
-class RoleAssociationForm(ModelForm):
-    def __init__(self, *args, **kwargs):
-        super(RoleAssociationForm, self).__init__(*args, **kwargs)
-        self.fields['Person'].queryset = Person.all().fetch(limit=100)
-    class Meta():
-        model=RoleAssociation
+
 ## End RoleAssociation
 ##**************************
 

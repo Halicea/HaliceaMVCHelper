@@ -7,16 +7,15 @@ from google.appengine.ext.webapp.util import run_wsgi_app
 from lib.gaesessions import SessionMiddleware
 
 #{%block imports%}
-from Controllers import BaseControllers
+from Controllers import BaseControllers, ShellControllers
 from Controllers import StaticControllers
 #{%endblock%}
 
 #Definition of the Controller Url mappings
 application = webapp.WSGIApplication(
 [
+('/', TestControllers.TestController),
 #{%block ApplicationControllers %}
-
-
 #{% block BaseControllers %}
 ('/Login', BaseControllers.LoginController),
 ('/Logout',BaseControllers.LogoutController),
@@ -28,12 +27,16 @@ application = webapp.WSGIApplication(
 #{%endblock%}
 
 #{%block StaticControllers%}
+('/',StaticControllers.WelcomeController),
 ('/Contact', StaticControllers.ContactController),
 ('/About', StaticControllers.AboutController),
 ('/Links', StaticControllers.LinksController),
 ('/NotAuthorized', StaticControllers.NotAuthorizedController),
 #{%endblock%}
-
+#{%block ShellControllers%}
+('admin/Shell', ShellControllers.FrontPageController),
+('admin/Shell/Statement', ShellControllers.StatementController),
+#{%endblock%}
 #{%endblock%}
 ('/(.*)', StaticControllers.NotExistsController),
 ], debug=settings.DEBUG)

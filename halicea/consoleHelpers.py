@@ -1,4 +1,6 @@
-from os.path import join
+def extractAgrs(paramsList):
+    return dict(map(lambda x:(x[:x.index('=')], x[x.index('=')+1:]), paramsList))
+
 def ask(message, validOptions={'y':True,'n':False}):
     yesno =''
     if isinstance(validOptions, str):
