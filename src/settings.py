@@ -12,7 +12,7 @@ TEMPLATE_DIRS = (abspath('Views'),
                  abspath('Templates'),)
 #we define the path relatively to our settings file
 PROJ_LOC = os.path.dirname(__file__)
-#MVC Directories
+#MVC Directoriess
 MODELS_DIR = join(PROJ_LOC,'Models')
 VIEWS_DIR = join(PROJ_LOC,'Views')
 FORM_MODELS_DIR = join(PROJ_LOC, 'Forms')

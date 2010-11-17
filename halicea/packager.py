@@ -16,7 +16,10 @@ packageStructure = {
 'styles_d':pjoin(proj_settings.STYLES_DIR, '${package}'),
 'pages_d':pjoin(proj_settings.PAGE_VIEWS_DIR, '${package}'),
 'jscripts_d':pjoin(proj_settings.JSCRIPTS_DIR, '${package}'),
-'Forms.py_f':pjoin(proj_settings.FORM_MODELS_DIR, '$package'+proj_settings.MODEL_FORM_MODULE_SUFIX+'.py'),
+'models_d':pjoin(proj_settings.MODELS_DIR, '${package}'),
+'controllers_d':pjoin(proj_settings.CONTROLLERS_DIR, '${package}'),
+'formmodels_d':pjoin(proj_settings.FORM_MODELS_DIR, '${package}'),
+'Forms.py_f':pjoin(proj_settings.FORM_MODELS_DIR, '${package}'+proj_settings.MODEL_FORM_MODULE_SUFIX+'.py'),
 'Models.py_f':pjoin(proj_settings.MODELS_DIR, '${package}' + proj_settings.MODEL_MODULE_SUFIX + '.py'),
 'Controllers.py_f':pjoin(proj_settings.CONTROLLERS_DIR, '${package}' + proj_settings.CONTROLLER_MODULE_SUFIX + '.py'),
 'url.map':proj_settings.HANDLER_MAP_FILE,
@@ -74,39 +77,38 @@ def unpack(packageName, source):
     else:
         print 'Such Package does not exist'
 def delete(pname):
-    pmfile = LocateModelModule(pname)
-    pcfile = LocateControllerModule(pname)
-    pfmfile = LocateFormModelModule(pname)
-    
-    pmdir = BasePathFromName(pname)
-    pcdir = BasePathFromName(pname)
-    pfmdir = BasePathFromName(pname)
-    
-    pvdir = LocatePagesDir(pname)
-    pfdir =LocateFormsDir(pname)
     handlermapblock1 = pname+settings.CONTROLLER_MODULE_SUFIX
     handlermapblock2 = pname
     handlermapimport = 'from '+basename(settings.CONTROLLERS_DIR)+' import '+pname+settings.CONTROLLER_MODULE_SUFIX
-
+    
     print 'This paths will be permanently deleted'
-    for item in [pmfile, pfmfile, pcfile, pmdir,pcdir, pfmdir,pvdir, pfdir]:
-        if os.path.exists(item):
-            if os.path.isdir(item):
-                print item
-                dirtree.tree(item, ' ', print_files=True, depth=3)
+    for key in packageStructure.keys():
+        if key.find('_')>0:
+            destName=dType=''
+            destName, dType = key.split('_')
+            destName=packageStructure[key].replace('${package}', os.path.sep.join(pname.split('.')))
+            
+            if dType=='d':
+                if os.path.exists(destName):
+                    print destName
+                    dirtree.tree(destName, ' ', print_files=True, depth=3)
             else:
-                print item
+                if os.path.exists(destName):
+                    print destName
     if ask('Are you sure you want to delete the Package %s?'%pname):
-        for item in [pmfile, pfmfile, pcfile, pmdir,pcdir, pfmdir,pvdir, pfdir]:
-            if os.path.exists(item):
-                if os.path.isdir(item):
-                    print 'removing %s directory'%item
-                    shutil.rmtree(item)
+        for key in packageStructure.keys():
+            if key.find('_')>0:
+                destName=dType=''
+                destName, dType = key.split('_')
+                destName=packageStructure[key].replace('${package}', os.path.sep.join(pname.split('.')))
+                if dType=='d':
+                    if os.path.exists(destName):
+                        print 'removing %s directory'%destName
+                        shutil.rmtree(destName)
                 else:
-                    print 'removing %s file'%item
-                    os.remove(item)
-            else:
-                print 'Path %s does not exist'%item
+                    if os.path.exists(destName):
+                        print 'removing %s file'%destName
+                        os.remove(destName)
         handlerMap = Block.loadFromFile(settings.HANDLER_MAP_FILE, cblPy)
         impLine = handlerMap['imports'][handlermapimport]
         #remove the import
@@ -127,5 +129,4 @@ def delete(pname):
             handlerMap['ApplicationControllers'].remove(mapBl)
         handlerMap.saveToFile(settings.HANDLER_MAP_FILE)
         print 'Package %s was removed'%pname
-    else:
-        pass
+

@@ -9,12 +9,13 @@ from lib.gaesessions import SessionMiddleware
 #{%block imports%}
 from Controllers import BaseControllers, ShellControllers
 from Controllers import StaticControllers
+from Controllers.Test import TestControllers
 #{%endblock%}
 
 #Definition of the Controller Url mappings
 application = webapp.WSGIApplication(
 [
-('/', TestControllers.TestController),
+#('/', TestControllers.TestController),
 #{%block ApplicationControllers %}
 #{% block BaseControllers %}
 ('/Login', BaseControllers.LoginController),
