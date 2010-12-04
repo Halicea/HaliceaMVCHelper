@@ -9,7 +9,6 @@ from lib.gaesessions import SessionMiddleware
 #{%block imports%}
 from Controllers import BaseControllers, ShellControllers
 from Controllers import StaticControllers
-from Controllers.Test import TestControllers
 #{%endblock%}
 
 #Definition of the Controller Url mappings
