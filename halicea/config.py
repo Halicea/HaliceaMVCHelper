@@ -4,7 +4,8 @@ from os.path import join as pjoin
 from os.path import abspath, dirname, basename
 APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
 if os.name == 'nt':
-    APPENGINE_PATH = 'C:\\devApps\\google_appengine'
+    APPENGINE_PATH = 'C:\\Users\\Costa\\Appengine'
+    #APPENGINE_PATH = 'C:\\devApps\\google_appengine'
 elif sys.platform=='darwin':
     APPENGINE_PATH = '/Users/costa/DevApps/google_appengine'
 installPath = dirname(dirname(abspath(__file__)))
