@@ -126,6 +126,8 @@ class Block(object):
         f = open(filePath, mode)
         f.write(str(self))
         f.close()
+    def writeToStream(self, outStream):
+        outStream.write(str(self))
     def __init__(self, parrent, name, blType=1):
         self.Parrent = parrent
         self.Children = []

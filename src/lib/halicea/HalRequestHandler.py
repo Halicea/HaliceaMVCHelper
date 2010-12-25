@@ -127,7 +127,7 @@ class HalRequestHandler( webapp.RequestHandler ):
                 outresult = self.operations[self.op]['method'](self, *args, **kwargs)
         else:
             if isinstance(self.operations['default']['method'], str):
-                outresult = getattr(self, self.operations[self.op]['method'])(self, *args, **kwargs)
+                outresult = getattr(self, self.operations['default']['method'])()
             else:
                 outresult = self.operations['default']['method'](self, *args, **kwargs)
         if outresult!=None:

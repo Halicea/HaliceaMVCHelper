@@ -165,11 +165,12 @@ def makeMvc(args):
                     .saveToFile(pjoin(viewFolder, m.Name+'_'+k+'.html'))
 
             #Forms Setup
-            formsFolder = locators.LocateFormsDir(m.Package)
-            if not exists(formsFolder): makedirs(formsFolder)
-            for k in operations:
-                Block\
-                    .loadFromFile(pjoin(MvcTemplateDirs['FRMTMPL_DIR'], 'FormTemplate_'+k+'.txt'), cblHal, render, {'m':m, 'op':k})\
+            if magicLevel == 0:
+                formsFolder = locators.LocateFormsDir(m.Package)
+                if not exists(formsFolder): makedirs(formsFolder)
+                for k in operations:
+                    Block\
+                        .loadFromFile(pjoin(MvcTemplateDirs['FRMTMPL_DIR'], 'FormTemplate_'+k+'.txt'), cblHal, render, {'m':m, 'op':k})\
                         .saveToFile(pjoin(formsFolder, m.Name+'Form_'+k+'.html'))
         if 'c' in arg:
             #Controller Setup

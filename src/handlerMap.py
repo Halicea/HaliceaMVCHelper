@@ -14,7 +14,7 @@ from Controllers import StaticControllers
 #Definition of the Controller Url mappings
 application = webapp.WSGIApplication(
 [
-('/', TestControllers.TestController),
+#('/', TestControllers.TestController),
 #{%block ApplicationControllers %}
 #{% block BaseControllers %}
 ('/Login', BaseControllers.LoginController),
