@@ -232,7 +232,6 @@ def makeMvc(args):
             #End ModelForm Setup
         if 'v' in arg:
             #View Setup
-<<<<<<< HEAD
             viewFolder = locators.LocatePagesDir(m.Package)
             if not exists(viewFolder): makedirs(viewFolder)
             for k in operations:
@@ -247,11 +246,6 @@ def makeMvc(args):
                 Block\
                     .loadFromFile(pjoin(MvcTemplateDirs['FRMTMPL_DIR'], 'FormTemplate_'+k+'.txt'), cblHal, render, {'m':m, 'op':k})\
                         .saveToFile(pjoin(formsFolder, m.Name+'Form_'+k+'.html'))
-=======
-            pass
-            #TODO:Finish the view
-            #End View Setup
->>>>>>> ab85d4e735b4462db7d5f9342f9277040b89bb09
         if 'c' in arg:
             #Controller Setup
             controllerFile = open(locators.LocateControllerModule(m.Package), 'w')
