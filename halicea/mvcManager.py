@@ -235,9 +235,20 @@ def makeMvc(args):
             #End ModelForm Setup
         if 'v' in arg:
             #View Setup
-            pass
-            #TODO:Finish the view
-            #End View Setup
+            viewFolder = locators.LocatePagesDir(m.Package)
+            if not exists(viewFolder): makedirs(viewFolder)
+            for k in operations:
+                Block\
+                    .loadFromFile(MvcTemplateFiles['VTPath'],cblHal, render, {'m':m,'formTemplate': m.Name+'Form_'+k })\
+                    .saveToFile(pjoin(viewFolder, m.Name+'_'+k+'.html'))
+
+            #Forms Setup
+            formsFolder = locators.LocateFormsDir(m.Package)
+            if not exists(formsFolder): makedirs(formsFolder)
+            for k in operations:
+                Block\
+                    .loadFromFile(pjoin(MvcTemplateDirs['FRMTMPL_DIR'], 'FormTemplate_'+k+'.txt'), cblHal, render, {'m':m, 'op':k})\
+                        .saveToFile(pjoin(formsFolder, m.Name+'Form_'+k+'.html'))
         if 'c' in arg:
             #Controller Setup
             controllerFile = open(locators.LocateControllerModule(m.Package), 'w')
