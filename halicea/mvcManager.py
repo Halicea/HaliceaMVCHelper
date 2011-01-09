@@ -104,6 +104,9 @@ def renderController(model=None , outStream=stdout, magicType='magic0', *args):
                     formModule=m.Package+settings.MODEL_FORM_MODULE_SUFIX,
                     formClass=m.Name+settings.MODEL_FORM_CLASS_SUFIX)
     if 'f' in args[0]:
+        if not cntBl['imports']:
+            imp = cntBl.createEmptyBlock('imports', cbl=cblPy)
+            cntBl.insert(0, imp)
         cntBl['imports'].appendLines([formImport])
     cntBl['imports'].appendLines([classImport])
     

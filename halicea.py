@@ -140,10 +140,10 @@ def main(args):
         elif args[0]=='git':
             fi,fo,fe= os.popen3(' '.join(args))
             for ln in fo.readlines():
-                print 'git:', ln
+                print 'git:', ln.replace('\n', '')
             for i in fe.readlines():
-                print "error:",i
-#            for i in fi.readlines():
+                print "error:",i.replace('\n', '')
+#           for i in fi.readlines():
 #                print "input->",i, ':'
         else:
             print 'Not Valid Command [mvc, run, console]'
