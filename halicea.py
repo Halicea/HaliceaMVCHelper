@@ -87,8 +87,8 @@ def main(args):
     if isInInstall:
         if args[0]=='project' and len(args)>1:
             newProject(args[1])
-        else:
-            print 'Not a valid command'
+#        else:
+#            print 'Not a valid command'
         #return
     if True: #TODO: Change to else:
         if set(args[0]).issubset(set('mvfc')):
@@ -137,6 +137,14 @@ def main(args):
             subprocess.Popen(command, Shell=True)
         elif args[0]=='console':
             pass
+        elif args[0]=='git':
+            fi,fo,fe= os.popen3(' '.join(args))
+            for ln in fo.readlines():
+                print 'git:', ln
+            for i in fe.readlines():
+                print "error:",i
+#            for i in fi.readlines():
+#                print "input->",i, ':'
         else:
             print 'Not Valid Command [mvc, run, console]'
         return
