@@ -5,8 +5,8 @@ from os import makedirs
 from os.path import basename, dirname, join as pjoin, exists
 #------------
 from halicea.consoleHelpers import ask
-from halicea.config import proj_settings as settings
-from halicea import config
+from halicea.config import proj_settings as settings, MvcTemplateDirs
+from halicea import config, packager
 from halicea.baseClasses import Model, Property, Block
 from halicea import locators, mvcPaths
 from halicea.codeBlocksHelpers import HalCodeBlockLocator, InPythonBlockLocator
@@ -17,8 +17,8 @@ libDir = 'lib'
 
 inherits_from = 'db.Model'
 def render(templatePath, context={}):
-    str = open(templatePath, 'r').read()
-    t = config.TEMPLATE_RENDERER(str)
+    templText = open(templatePath, 'r').read()
+    t = config.TEMPLATE_RENDERER(templText)
     contextDict ={}
     contextDict.update(context)
     contextDict.update(config.djangoVars)
@@ -69,52 +69,52 @@ def setProperties(p, model):
             print 'Must provide Type:'
             pprint.pprint(config.types)
         return False
-operations = [x[0] for x in settings.DEFAULT_OPERATIONS.iteritems() 
+operations = [(x[0],x[1]) for x in settings.DEFAULT_OPERATIONS.iteritems() 
               if x[1].has_key('view') and x[1]['view']]
 
-def renderController(model=None , outStream=stdout, magicType='magic0', *args):
+
+def renderModel(model=None, baseBlock=None, outputStream=stdout, magicType='magic0', *args):
+    MvcTemplateFiles = mvcPaths.getTemplateFiles(magicType)
+    baseBlock.appendText(render(MvcTemplateFiles['MTPath'], {'m':model}))
+    outputStream.write(str(baseBlock))
+
+def renderModelForm(model=None, baseBlock=None, outputStream=stdout,magicType='magic0',*args):
+    MvcTemplateFiles = mvcPaths.getTemplateFiles(magicType)
+    baseBlock.appendText(render(MvcTemplateFiles['FTPath'], {'m':model}))
+    outputStream.write(str(baseBlock))
+
+def renderController(model=None , baseBlock=None,outputStream=stdout, magicType='magic0', *args):
     MvcTemplateDirs= mvcPaths.getTemplatesDirs(magicType)
     MvcTemplateFiles = mvcPaths.getTemplateFiles(magicType)
+    methods = None
     m = model
-    #set operation templates
-    methodTemplates = []
-    for k, v in settings.DEFAULT_OPERATIONS.iteritems():
-        if isinstance(v['method'], str):
-            methodTemplates.append(pjoin(MvcTemplateDirs['OPRTMPL_DIR'],v['method']+'.txt'))
-        else:
-            methodTemplates.append(pjoin(MvcTemplateDirs['OPRTMPL_DIR'],v['method'].__name__+'.txt'))
-    methodTemplates = list(set(methodTemplates))
-
-    methods = map(lambda x: render(x, {'m':m}), methodTemplates)
-    cntBl = None
-    controllerFile = locators.LocateControllerModule(model.Package)
-    if not exists(dirname(controllerFile)):
-        makedirs(dirname(controllerFile))
-    if not exists(controllerFile):
-        cntBl =Block.loadFromFile(MvcTemplateFiles['CBTPath'], cblPy, render, {'m':m})
-    else:
-        cntBl =Block.loadFromFile(controllerFile, cblPy)
-    classImport = Template('from ${modelsPath}.${modelModule} import ${modelClass}')\
-        .substitute(modelsPath=basename(settings.MODELS_DIR),
-                    modelModule=m.Package+settings.MODEL_MODULE_SUFIX,
-                    modelClass=m.Name)
-    if 'f' in args[0]:
+    if m:
+        methodTemplates = []
+        for k, v in settings.DEFAULT_OPERATIONS.iteritems():
+            if isinstance(v['method'], str):
+                methodTemplates.append(pjoin(MvcTemplateDirs['OPRTMPL_DIR'],v['method']+'.txt'))
+            else:
+                methodTemplates.append(pjoin(MvcTemplateDirs['OPRTMPL_DIR'],v['method'].__name__+'.txt'))
+        methodTemplates = list(set(methodTemplates))
+    
+        methods = map(lambda x: render(x, {'m':m}), methodTemplates)
+    
+        classImport = Template('from ${modelsPath}.${modelModule} import ${modelClass}')\
+            .substitute(modelsPath=basename(settings.MODELS_DIR),
+                        modelModule=m.Package+settings.MODEL_MODULE_SUFIX,
+                        modelClass=m.Name)
         formImport = Template('from ${formsPath}.${formModule} import ${formClass}')\
             .substitute(formsPath=basename(settings.FORM_MODELS_DIR),
                     formModule=m.Package+settings.MODEL_FORM_MODULE_SUFIX,
                     formClass=m.Name+settings.MODEL_FORM_CLASS_SUFIX)
-    if 'f' in args[0]:
-        if not cntBl['imports']:
-            imp = cntBl.createEmptyBlock('imports', cbl=cblPy)
-            cntBl.insert(0, imp)
-        cntBl['imports'].appendLines([formImport])
-    cntBl['imports'].appendLines([classImport])
-    
-    cntBl.appendText(render(MvcTemplateFiles['CTPath'], {'m':m, 'methods':methods}))
-    cntBl.saveToFile(controllerFile)
+        if not baseBlock['imports']:
+            baseBlock.createEmptyBlocks('imports', cblPy)
+        baseBlock['imports'].appendLines([classImport, formImport])
+    baseBlock.appendText(render(MvcTemplateFiles['CTPath'], {'m':m, 'methods':methods}))
+    outputStream.write(str(baseBlock))
 
-def renderHandlerMap(model=None, outStream=stdout, magicType='magic0', *args):
-    handlerMap = Block.loadFromFile(settings.HANDLER_MAP_FILE, cblPy)
+def renderHandlerMap(model=None, baseBlock=None,outputStream=stdout, magicType='magic0', *args):
+    handlerMap = baseBlock
     appControllers = handlerMap['ApplicationControllers']
     imports = handlerMap['imports']
     m = model
@@ -122,7 +122,6 @@ def renderHandlerMap(model=None, outStream=stdout, magicType='magic0', *args):
     blockName = m.Package+settings.CONTROLLER_MODULE_SUFIX
     if not appControllers[blockName]:
         appControllers.createEmptyBlocks(blockName, cblPy)
-
     myBlock = appControllers[blockName]
     
     templ = Template("""('/${model}', ${controller}),""")
@@ -134,134 +133,139 @@ def renderHandlerMap(model=None, outStream=stdout, magicType='magic0', *args):
     importsLine= 'from '+basename(settings.CONTROLLERS_DIR)+' import '+m.Package+settings.CONTROLLER_MODULE_SUFIX
     if not imports[importsLine]:
         imports.append(Block.createLineBlock(importsLine))
-    handlerMap.saveToFile(settings.HANDLER_MAP_FILE)
+    outputStream.write(str(handlerMap))
 
-def renderModel(model=None, outputStream=stdout, magicType='magic0', *args):
-    m=model
-    modelFile = locators.LocateModelModule(m.Package)
-    MvcTemplateFiles = mvcPaths.getTemplateFiles(magicType)
-    mb = None
-    if not exists(dirname(modelFile)):
-        makedirs(dirname(modelFile))
-    if not exists(modelFile):
-        mb = Block.loadFromFile(MvcTemplateFiles['MBTPath'], cblPy, render, {'m':m})
-    else:
-        mb = Block.loadFromFile(modelFile, cblPy)
-    mb.appendText(render(MvcTemplateFiles['MTPath'], {'m':m}))
-    outputStream.write(str(mb))
-def renderModelForm(model=None, outputStream=stdout,magicType='magic0',*args):
-    MvcTemplateFiles = mvcPaths.getTemplateFiles(magicType)
-    modelFormFile = locators.LocateFormModelModule(model.Package)
-    if not exists(dirname(modelFormFile)):
-        makedirs(dirname(modelFormFile))
-    frmBl = None
-    if not exists(modelFormFile):
-        frmBl = Block.loadFromFile(MvcTemplateFiles['FBTPath'], cblPy, render,{'m':model})
-    else:
-        frmBl = Block.loadFromFile(modelFormFile, cblPy)
-    frmBl.appendText(render(MvcTemplateFiles['FTPath'], {'m':model}))
-    outputStream.write(str(frmBl))
+def makeModelFromFile(modelFile):
+    f = open(modelFile, 'r')
+    lines = [x.replace('\n','') for x in f.readlines()]
+    modelList = []
 
-def renderPageView(model=None, outputStream=stdout, magicType='magic0', *args):
-    MvcTemplateFiles = mvcPaths.getTemplateFiles(magicType)
-    MvcTemplateDirs = mvcPaths.getTemplatesDirs(magicType)
-    viewFolder = locators.LocatePagesDir(model.Package)
-    if not exists(viewFolder): makedirs(viewFolder)
-
-    for k in operations:
-        Block\
-            .loadFromFile(MvcTemplateFiles['VTPath'],cblHal, render, {'m':model,'formTemplate': model.Name+'Form_'+k })\
-            .saveToFile(pjoin(viewFolder, model.Name+'_'+k+'.html'))
-
-    #Forms Setup
-    if magicType == 0:
-        formsFolder = locators.LocateFormsDir(model.Package)
-        if not exists(formsFolder): makedirs(formsFolder)
-        for k in operations:
-            Block\
-                .loadFromFile(pjoin(MvcTemplateDirs['FRMTMPL_DIR'], 'FormTemplate_'+k+'.txt'), cblHal, render, {'m':model, 'op':k})\
-                .saveToFile(pjoin(formsFolder, model.Name+'Form_'+k+'.html'))
-
-def renderFormView(model=None, outputStream=stdout, magicType='magic0', *args):
-    pass
-
-def makeModelForm(model=None ,outStream=stdout, *args):
-    m=model
+    m=Model()
+    print 'Parsing the File '+modelFile
+    for line in lines:
+        if not m.Name:
+            m.Name = line[line.rindex('.')+1:]
+            m.Package = line[:line.rindex('.')]
+            m.InheritsFrom = inherits_from
+        elif line:
+            setProperties(line, m)
+        else:
+            modelList.append(m)
+            m=Model()
+    f.close()
+    print 'created Models'+str(modelList)
+    return modelList
+        
 def makeMvc(args):
     arg = args[0]
     package = ''
     name =''
     magicLevel = settings.MagicLevel
+    modelList = []
     #TODO: set the MagicLevel
     #TODO: make try catch and display proper output if wrong sintax is entered
     if len(args)>1:
-        name = args[1][args[1].rindex('.')+1:]
-        package = args[1][:args[1].rindex('.')] 
-
-    m = Model()
-    #TODO: Validation needs to be added here
-    if not (name and package):
-        m.Package = ask('PackageName: ', '*')
-        m.Name = ask('ModelName: ', '*')
-    else:
-        m.Package = package
-        m.Name = name
-
-    if 'm' in arg:
-        #TODO: set to according to an argument
-        m.InheritsFrom = inherits_from
-        i = 0
-        print '.'*14+'class '+m.FullName+'('+m.InheritsFrom+'):'
-        p = True #Do-While
-        while p:
-            p = raw_input('Property'+str(i)+'>'+'.'*(9-len(str(i))))
-            if setProperties(p, m): i+=1
-    else:
-        #Create a Model instance out of specific class if exists
-        raise NotImplemented('This feature is not implemented yet')
-
-    if ask('Save?'):
+        if args[1][:len('path=')]=='path=':
+            modelList = makeModelFromFile(args[1][len('path='):])
+        else:
+            name = args[1][args[1].rindex('.')+1:]
+            package = args[1][:args[1].rindex('.')]
+    if len(args)>2:
+        magicLevel = int(args[2])
+    magicType = 'magic'+str(magicLevel)
+    
+    mvcTemplateFiles = mvcPaths.getTemplateFiles(magicType)
+    mvcTemplateDirs = mvcPaths.getTemplatesDirs(magicType)
+    if not modelList:
+        m = Model()
+        #TODO: Validation needs to be added here
+        if not (name and package):
+            m.Package = ask('PackageName: ', '*')
+            m.Name = ask('ModelName: ', '*')
+        else:
+            m.Package = package
+            m.Name = name
+    
         if 'm' in arg:
-            #Model setup
-            modelFile = open(locators.LocateModelModule(m.Package), 'w')
-            renderModel(m, modelFile, magicType='magic'+str(magicLevel))
-            modelFile.close()
-            #End Model Setup
-        if 'f' in arg:
-            #ModelForm Setup
-            modelFormFile=open(locators.LocateFormModelModule(m.Package), 'w')
-            renderModelForm(m, modelFormFile,'magic'+str(magicLevel))
-            modelFormFile.close()
-            #End ModelForm Setup
-        if 'v' in arg:
-            #View Setup
-            viewFolder = locators.LocatePagesDir(m.Package)
-            if not exists(viewFolder): makedirs(viewFolder)
-            for k in operations:
-                Block\
-                    .loadFromFile(MvcTemplateFiles['VTPath'],cblHal, render, {'m':m,'formTemplate': m.Name+'Form_'+k })\
-                    .saveToFile(pjoin(viewFolder, m.Name+'_'+k+'.html'))
-
-            #Forms Setup
-            formsFolder = locators.LocateFormsDir(m.Package)
-            if not exists(formsFolder): makedirs(formsFolder)
-            for k in operations:
-                Block\
-                    .loadFromFile(pjoin(MvcTemplateDirs['FRMTMPL_DIR'], 'FormTemplate_'+k+'.txt'), cblHal, render, {'m':m, 'op':k})\
-                        .saveToFile(pjoin(formsFolder, m.Name+'Form_'+k+'.html'))
-        if 'c' in arg:
-            #Controller Setup
-            controllerFile = open(locators.LocateControllerModule(m.Package), 'w')
-            renderController(m, controllerFile, 'magic'+str(magicLevel), arg)
-            controllerFile.close()
-            #End Controller Setup
-        if 'h' in arg:
-            #HandlerMap Setup
-            handlerMapFile = open(config.proj_settings.HANDLER_MAP_FILE, 'w')
-            renderHandlerMap(m, handlerMapFile, magicLevel)
-            handlerMapFile.close()
-            #End HandlerMap
-
-    m=None
+            #TODO: set to according to an argument
+            m.InheritsFrom = inherits_from
+            i = 0
+            print '.'*14+'class '+m.FullName+'('+m.InheritsFrom+'):'
+            p = True #Do-While
+            while p:
+                p = raw_input('Property'+str(i)+'>'+'.'*(9-len(str(i))))
+                if setProperties(p, m): i+=1
+        else:
+            #Create a Model instance out of specific class if exists
+            raise NotImplemented('This feature is not implemented yet')
+        modelList.append(m)
+        
+    for m in modelList:
+        if ask('Save '+m.FullName+'?'):
+            if 'm' in arg:
+                #Model setup
+                modelFile = locators.LocateModelModule(m.Package)
+                baseBlock = None
+                if exists(modelFile): 
+                    baseBlock = Block.loadFromFile(modelFile, cblPy)
+                else:
+                    baseBlock =Block.loadFromFile(mvcTemplateFiles["MBTPath"], cblPy, render, {'m':m})
+                stream = open(modelFile, 'w')
+                renderModel(m, baseBlock, stream, magicType=magicType)
+                stream.close()
+                #End Model Setup
+            if 'f' in arg:
+                #ModelForm Setup
+                mfPath = locators.LocateFormModelModule(m.Package)
+                baseBlock = None
+                if exists(mfPath):
+                    baseBlock = Block.loadFromFile(mfPath, cblPy)
+                else:
+                    baseBlock = Block.loadFromFile(mvcTemplateFiles['FBTPath'], cblPy, render, {'m':m})
+                stream = open(mfPath, 'w')
+                renderModelForm(m, baseBlock,stream,magicType)
+                stream.close()
+                #End ModelForm Setup
+            if 'c' in arg:
+                #Controller Setup
+                controllerPath = locators.LocateControllerModule(m.Package)
+                baseBlock = None
+                if exists(controllerPath):
+                    baseBlock = Block.loadFromFile(controllerPath, cblPy)
+                else:
+                    baseBlock = Block.loadFromFile(mvcTemplateFiles["CBTPath"], cblPy, render, {'m':m})
+                stream = open(controllerPath, 'w')
+                renderController(m, baseBlock, stream, magicType, arg)
+                stream.close()
+                #End Controller Setup
+            if 'v' in arg:
+                viewFolder = locators.LocatePagesDir(m.Package)
+                formFolder =locators.LocateFormsDir(m.Package)
+                #if we only want an empty view
+                if not m:
+                    pass
+                #if we want to generate the view by the model provided
+                else:
+                    #if we dont want to use magic but to generate the default code instead
+                    if not magicLevel:
+                        for k, v in operations:
+                            templateName = isinstance(v['method'],str) and v['method'] or v['method'].__name__
+                            formTemplatePath = pjoin(mvcTemplateDirs['FRMTMPL_DIR'], templateName+'.txt')
+                            viewPath = pjoin(viewFolder, m.Name+'_'+(k=='default' and [''] or [k])[0] +'.html')
+                            baseBlock  = Block.loadFromFile(mvcTemplateFiles['VTPath'], cblHal, render,{'m':m,'formTemplate': m.Name+'Form_'+k })
+                            baseBlock.saveToFile(viewPath)
+                            
+                            formPath = pjoin(formFolder, m.Name+settings.FORM_VIEW_SUFFIX+'_'+k+'.html')
+                            baseBlock  = Block.loadFromFile(formTemplatePath, cblHal, render,{'m':m})
+                            baseBlock.saveToFile(formPath)
+                    else: #here the magic will be used and we dont need some special view
+                        pass
+            if 'h' in arg:
+                #HandlerMap Setup
+                baseBlock = Block.loadFromFile(config.proj_settings.HANDLER_MAP_FILE, cblPy)
+                stream = open(config.proj_settings.HANDLER_MAP_FILE, 'w')
+                renderHandlerMap(m, baseBlock, stream, magicLevel)
+                stream.close()
+                #End HandlerMap
 def delMvc(mvc, modelFullName):
     pass

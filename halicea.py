@@ -25,14 +25,13 @@ def tail(arr, cnt):
 values =['project', 'mvc','vc','mc', 'mv','m','v','c','run','deploy']
 modelsStructure ={}
 commandsDict={'*':{ 'new':{'template':{}, 'real':{}}, 'project':{}, 
-                    'mvcf':{},
+                    'mvcfh':{},
                     'del':{'package':{}, 'model':{}}, 
                     'deploy':{'--no_cookies':{},'--email=':{}}, 
                     'run':{'--port=':{}, '--clear_datastore=':{}, '--datastore_path=':{}}
                     }
                 }
 mvcStates = {'package':{},'class':{}, 'prop':{'ref':modelsStructure} }
-
 completions={}
 currentState = ''
 def completer(text, state):
@@ -91,7 +90,7 @@ def main(args):
 #            print 'Not a valid command'
         #return
     if True: #TODO: Change to else:
-        if set(args[0]).issubset(set('mvfc')):
+        if set(args[0]).issubset(set('mvfch')):
             makeMvc(args)
         elif args[0]=='del' and len(args)>=2:
             if args[1]=='package':
@@ -118,7 +117,7 @@ def main(args):
                                     proj=config.PROJ_LOC,
                                     options = options)
             # print command
-            subprocess.Popen(command, shell=True)
+            subprocess.Popen(command, shell=True, stdout=sys.stdout, stdin=sys.stdin)
             webbrowser.open('http://localhost:8080')
         elif args[0]=='pack' and len(args)>3:
             if args[1]=='package':
@@ -160,6 +159,7 @@ if __name__ == '__main__':
                 if not(len(args)==1 and args[0]=='exit'):
                     main(args)
                 else:
+                    print 'Halicea Command Console exited'
                     break;
     except KeyboardInterrupt:
         print 'Halicea Command Console exited'

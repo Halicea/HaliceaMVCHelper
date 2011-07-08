@@ -1,8 +1,4 @@
-class {{m.Name}}Controller(hrh):
-    def SetOperations(self):
-        self.operations = settings.DEFAULT_OPERATIONS
-        ##make new handlers and attach them
-        #self.operations.update({'xml':{'method':'xmlCV'}})
-        self.operations['default'] = {'method':'list'}
+{%autoescape off%}class {{m.Name}}Controller(hrh):
+    def SetOperations(self): pass
     {%for m in methods %}{{m}}
-{%endfor%}
+{%endfor%}{%endautoescape%}

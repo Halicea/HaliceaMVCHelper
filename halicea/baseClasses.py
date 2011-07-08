@@ -74,7 +74,7 @@ class Block(object):
                 return sum([x.LineCount for x in self.Children])
             else:
                 return 0
-
+    
     @staticmethod
     def createEmptyBlock(name, cbl=HalCodeBlockLocator()):
         return Block.loadFromLines(cbl.createValidBlock(name).split('\n'),'root',cbl)[name]
@@ -96,6 +96,7 @@ class Block(object):
                 blockqueue.pop()
                 currentBlock = rt['.'.join(blockqueue[1:])]
         return rt
+    
     def createEmptyBlocks(self, blockName, cbl=HalCodeBlockLocator()):
         parts= blockName.split('.')
         curBlock = self
@@ -104,7 +105,7 @@ class Block(object):
                 curBlock.append(Block.createEmptyBlock(p, cbl))
             curBlock = curBlock[p]
     @staticmethod
-    def loadFromText(self, text, cbl=HalCodeBlockLocator(), renderer=None, renderDict={}):
+    def loadFromText(text, cbl=HalCodeBlockLocator(), renderer=None, renderDict={}):
         txt =text
         if renderer:
             txt = renderer(renderDict)
@@ -122,7 +123,17 @@ class Block(object):
             txt = open(filePath, 'r').read()
         lines = txt.split('\n')
         return Block.loadFromLines(lines, filePath, cbl)
+    @staticmethod
+    def openOrCreate(filePath, cbl=HalCodeBlockLocator(), renderer=None, renderDict={}, defaultLines=[]):
+        if os.path.exists(filePath):
+            #we dont need rendering here, we just need a simple fileload.
+                return Block.loadFromFile(filePath, cbl, renderer, renderDict)
+        else:
+            return Block.loadFromLines(defaultLines, 'root', cbl)
+
     def saveToFile(self, filePath, mode='w'):
+        if not os.path.exists(os.path.dirname(filePath)):
+            os.makedirs(os.path.dirname(filePath))
         f = open(filePath, mode)
         f.write(str(self))
         f.close()

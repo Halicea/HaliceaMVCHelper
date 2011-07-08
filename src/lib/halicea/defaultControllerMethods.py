@@ -1,6 +1,6 @@
 from google.appengine.ext import db
 from Magic import MagicSet
-def index(request, *args, **kwargs):
+def edit(request, *args, **kwargs):
     if request.params.key:
         item = db.get(request.params.key)
         if item:
@@ -36,7 +36,7 @@ def save(request, *args, **kwargs):
         request.status = 'Form is not Valid'
     request.redirect(request.get_url())
 
-def list(request, *args, **kwargs):
+def index(request, *args, **kwargs):
     results =None
     result = {'items': MagicSet.getModelClass().all().fetch(limit=1000)}
     return result.update(locals())

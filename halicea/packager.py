@@ -56,7 +56,18 @@ def __unpack__(packageName, source):
             src = pjoin(source, srcName)
             dest = Template(packageStructure[key]).substitute(package=packageName) 
             copyItem(src, dest, dType)
-
+def createPackages(dirPath, root = proj_settings.PROJ_LOC):
+    if not os.path.exists(dirPath):
+        os.makedirs(dirPath)
+    tail, head = os.path.split(dirPath)
+    skipNum = 0
+    if(root in dirPath):
+        skipNum =  len(root.split(os.path.sep))
+    while head and len(tail.split(os.path.sep))>=skipNum:
+        if(not os.path.exists(pjoin(tail, head, '__init__.py'))):
+            open(pjoin(tail, head, '__init__.py'), 'w').close()
+        tail, head = os.path.split(tail)
+    return True
 def pack(packageName, destination):
     if os.path.exists(destination):
         if os.path.isdir(destination):

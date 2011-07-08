@@ -9,8 +9,8 @@
 <value>/Users/costa/DevApps/google_appengine</value>
 </pydev_variables_property>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
-<path>/HaliceaMVCHelper/src</path>
-<path>/HaliceaMVCHelper</path>
+<path>/HaliceaMVCHeler/src</path>
+<path>/HaliceaMVCHeler</path>
 </pydev_pathproperty>
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>${GOOGLE_APP_ENGINE}</path>

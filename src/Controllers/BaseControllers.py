@@ -1,16 +1,92 @@
-
-import Models.BaseModels as base
-from lib.halicea.HalRequestHandler import HalRequestHandler as hrh
-from google.appengine.api import memcache
-from lib import messages
-from lib.halicea.decorators import *
+from google.appengine.api import urlfetch
+from django.utils import simplejson
+import urllib, os
+from Forms.BaseForms import InvitationForm
+from lib.halicea import ContentTypes as ct
 import settings
-from Models.BaseModels import RoleAssociation, Person, Role, WishList
-from Forms.BaseFroms import  RoleAssociationForm, PersonForm , RoleForm, WishListForm
-
+#{%block imports%}
+from lib.halicea.HalRequestHandler import HalRequestHandler as hrh
+from lib.halicea.decorators import *
+from Models.BaseModels import RoleAssociation, RoleAssociationForm 
+from Models.BaseModels import Role, RoleForm 
+from Models.BaseModels import Person
+from Models.BaseModels import Invitation
+from Models.BaseModels import WishList, WishListForm 
+#{%endblock%}
 class LoginController( hrh ):
+    def SetOperations(self):
+        self.operations = {'default':{'method':self.login},
+                           'JanrainAuth':{'method':self.JanrainAuth}}
+    def login(self, *args):
+        if self.request.method=='GET':
+            self.login_get(*args)
+        else:
+            self.login_post(*args)
     @ErrorSafe()
-    def get( self, *args ):
+    def JanrainAuth(self, *args):
+        token = self.params.token
+        url = 'https://rpxnow.com/api/v2/auth_info'
+        args = {
+          'format': 'json',
+          'apiKey': '4a593fc2715670ab6a03b40653054858ffdc34a2',
+          'token': token
+          }
+        r = urlfetch.fetch(url=url,
+                           payload=urllib.urlencode(args),
+                           method=urlfetch.POST,
+                           headers={'Content-Type':'application/x-www-form-urlencoded'}
+                           )
+    
+        json = simplejson.loads(r.content)
+    
+        if json['stat'] == 'ok':
+            person = Person.gql("WHERE UserName= :u AND AuthenticationType= :auth", u=json['profile']['preferredUsername'], auth=json['profile']['providerName']).get()
+            if not person:
+                name = json['profile'].has_key('givenName') and json['profile']['givenName'] or ''
+                surname = json['profile'].has_key('familyName') and json['profile']['name']['familyName'] or ''
+                display  = json['profile'].has_key('displayName') and json['profile']['displayName'] or ''
+                email  = json['profile'].has_key('email') and json['profile']['email'] or None
+                photo = json['profile'].has_key('photo') and json['profile']['photo'] or None
+                if not name and not surname and display:
+                    arr = display.split(' ')
+                    name = arr[0]; 
+                    surname = len(arr)>1 and arr[1] or ''
+                if len(args)==1:
+                    person = Person.get(args[0])
+                    person.UserName=json['profile']['preferredUsername'],
+                    person.Name=name,
+                    person.Surname=surname,
+                    person.Email = email,
+                    person.Password='openid',
+                    person.Public=True,
+                    person.Notify=True,
+                    person.AuthenticationType=json['profile']['providerName'],
+                    person.PhotoUrl=photo,
+                    person.put()
+                else:
+                    person = Person.CreateNew(uname=json['profile']['preferredUsername'],
+                                              name=name,
+                                              surname=surname,
+                                              email = email,
+                                              password='openid',
+                                              public=True,
+                                              notify=True,
+                                              authType=json['profile']['providerName'],
+                                              photoUrl=photo,
+                                              _autoSave=True)
+                    
+            self.login_user2(person)
+            self.status = 'Welcome '+person.UserName
+            if self.params.redirect_url:
+                self.redirect(self.params.redirect_url)
+            else:
+                self.redirect('/')
+        else:
+            self.status = 'Not Valid Login'
+            self.respond()
+
+    @ErrorSafe()
+    def login_get( self, *args ):
         if not self.User:
             if self.g('redirect_url'):
                 self.respond({'redirect_url':self.g('redirect_url')})
@@ -18,18 +94,19 @@ class LoginController( hrh ):
                 self.respond()
         else:
             self.redirect( '/' )
-
-    def post( self ):
+            
+    @ErrorSafe()
+    def login_post(self , *args):
         uname = self.request.get( 'Email' )
         passwd = self.request.get( 'Password' )
         if (uname and passwd):
-            if(self.login_user(uname, passwd)):
+            if(self.login_user_local(uname, passwd)):
                 if self.request.get( 'redirect_url' ):
                     self.redirect( self.request.get( 'redirect_url' ) )
                 else:
                     self.redirect( '/' )
             else:
-                self.status = 'Email Or Password are not correct!!'
+                self.status = 'Email Or Password are not correct!'
                 self.respond()
         else:
             self.status = 'Email Or Password are not correct!'
@@ -72,6 +149,7 @@ class AddUserController( hrh ):
         except Exception, ex:
             self.status = ex
             self.redirect(AddUserController.get_url())
+
 
 class RoleController(hrh):
     def SetOperations(self):
@@ -204,7 +282,8 @@ class WishListController(hrh):
         self.operations = settings.DEFAULT_OPERATIONS
         ##make new handlers and attach them
         #self.operations.update({'xml':{'method':'xmlCV'}})
-        self.operations['default'] = {'list':self.list}
+        self.operations['default'] = {'method':'list'}
+    
     def list(self):
         self.SetTemplate(templateName='WishList_lst.html')
         results =None
@@ -265,4 +344,56 @@ class WishListController(hrh):
         else:
             self.status = 'Key was not Provided!'
         self.redirect(WishListController.get_url())
+
+class InvitationController(hrh):
+
+    @ClearDefaults()
+    @Default('create')
+    @Handler('create', 'create')
+    @Handler('index', 'index')
+    @Handler('delete', 'delete')
+    def SetOperations(self):pass
+
+    @ResponseHeaders(**{'Content-Type':ct.JSON})
+    @Post()
+    @ErrorSafe()
+    def create(self,*args):
+        form = InvitationForm(data=self.request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            from google.appengine.api import mail
+            p=Person.CreateNew(uname=email, email=email,
+                             name=email,surname=email,
+                             password='blablabla', _autoSave=True)
+            inv =Invitation.CreateNew(invitefrom=self.User, personbinding=p, _isAutoInsert=True)
+            mail.send_mail(sender='admin@halicea.com',to=p.Email,subject='Invitation for Bordj',
+                           body="""Dear Mr/Ms,<br/>
+    You have been invited to register on Bordj app from {%s}.<br/>
+    Please go to this <a href="%s">link</a> in order to finish the registration.<br/>
+    <b>Note:</b>Registration info will expire in 7 days.<br/>
+    Regards,
+       Bordj Admin"""%(self.User, LoginController.get_url(inv.key().__str__())))
+            return """{result:True, message:"Invitation is sent to the user"}"""
+
+    def index(self, accepted=False, *args):
+        results =None
+        index = 0; count=20
+        try:
+            index = int(self.params.index)
+            count = int(self.params.count)
+        except:
+            pass
+        nextIndex = index+count;
+        previousIndex = index<=0 and -1 or (index-count>0 and 0 or index-count) 
+        result = {'InvitationList': Invitation.all().filter('Accepted = ', accepted).fetch(limit=count, offset=index)}
+        result.update(locals())
+        return result
+    def delete(self, *args):
+        Invitation.get(self.params.key).delete()
+        if self.isAjax:
+            self.response.headers["Content-Type"]=ct.JSON
+            return """{message:"Item is deleted"}"""
+        else:
+            from BordjControllers import DolgController
+            self.redirect(DolgController.get_url())
 

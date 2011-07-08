@@ -1,20 +1,22 @@
 import os
-from os.path import join, abspath
-from lib.halicea import defaultControllerMethods as dcm
-DEBUG = True
+from os.path import join
+#from lib.halicea import defaultControllerMethods as dcm
+from lib.halicea import dummyControllerMethods as dcm
+DEBUG = False
 TEMPLATE_DEBUG = True
 DEFAULT_CHARSET ='UTF-8'
 APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
 if os.name == 'nt':
     #APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
     APPENGINE_PATH = 'C:\\devApps\\google_appengine'
-TEMPLATE_DIRS = (abspath('Views'), 
-                 abspath('Templates'),)
+
 #we define the path relatively to our settings file
 PROJ_LOC = os.path.dirname(__file__)
-#MVC Directoriess
+
+#MVC Directories
 MODELS_DIR = join(PROJ_LOC,'Models')
 VIEWS_DIR = join(PROJ_LOC,'Views')
+VIEWS_RELATIVE_DIR = ''
 FORM_MODELS_DIR = join(PROJ_LOC, 'Forms')
 CONTROLLERS_DIR = join(PROJ_LOC, 'Controllers')
 BASE_VIEWS_DIR = join(VIEWS_DIR, 'bases')
@@ -39,23 +41,30 @@ BASE_VIEW_SUFIX = ''
 PAGE_VIEW_SUFFIX = ''
 FORM_VIEW_SUFFIX = 'Form'
 BLOCK_VIEW_SUFIX = ''
+BASE_MOBILE_VIEW_EXTENSION = '_mobile'
 #End MVC Sufixes
+
 
 #File Extensions
 CONTROLLER_EXTENSTION = '.py'
 MODEL_EXTENSTION = '.py'
 MODEL_FORM_EXTENSTION = '.py'
-
 VIEW_EXTENSTION = '.html'
 
 MagicLevel = 0
+
 DEFAULT_OPERATIONS = {
-                      'lst':{'method':dcm.list, 'view':True}, 
-                      'shw':{'method':dcm.index, 'view':True},
-                      'ins':{'method':dcm.save, 'view':False},
-                      'upd':{'method':dcm.save, 'view':False},
-                      'del':{'method':dcm.delete, 'view':False},
                       'default':{'method':dcm.index, 'view':False},
+                      'index':{'method':dcm.index, 'view':True}, 
+                      'details':{'method':dcm.details, 'view':True},
+                      'edit':{'method':dcm.edit, 'view':True},
+                      'insert':{'method':dcm.save, 'view':False},
+                      'update':{'method':dcm.save, 'view':False},
+                      'delete':{'method':dcm.delete, 'view':False},
                      }
+OPENID_PROVIDERS = {'Google': 'Google.com/accounts/o8/id', 'Yahoo': 'Yahoo.com', 'MyOpenID': 'MyOpenID.com'}
 #DJANGO APP SETTINGS SECTION
+TEMPLATE_DIRS = (VIEWS_DIR)
+ROOT_URLCONF ='handlerMap'
+TEMPLATE_LOADERS = ('lib.halicea.HalTemplateLoader.HalLoader',)
 #PASTE YOUR CONFIGURATION HERE

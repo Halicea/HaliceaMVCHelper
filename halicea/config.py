@@ -4,8 +4,8 @@ from os.path import join as pjoin
 from os.path import abspath, dirname, basename
 APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
 if os.name == 'nt':
-    APPENGINE_PATH = 'C:\\Users\\Costa\\Appengine'
-    #APPENGINE_PATH = 'C:\\devApps\\google_appengine'
+    #PPENGINE_PATH = 'C:\\Users\\Costa\\Appengine'
+    APPENGINE_PATH = 'C:\\DevApps\\google_appengine'
 elif sys.platform=='darwin':
     APPENGINE_PATH = '/Users/costa/DevApps/google_appengine'
 installPath = dirname(dirname(abspath(__file__)))
@@ -14,7 +14,7 @@ sys.path.append(abspath(pjoin(PROJ_LOC)))
 #Set django in pythonpath
 sys.path.append(APPENGINE_PATH)
 sys.path.append(pjoin(APPENGINE_PATH, 'lib'))
-sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'django' ))
+sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'django_1_2' ))
 sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'webob' ))
 sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'yaml','lib' ))
 ###
@@ -45,8 +45,10 @@ MvcTemplateFiles = \
     {
         'MTPath'  : pjoin(TMPL_DIR, 'ModelTemplate.txt'),
         'MBTPath' : pjoin(MvcTemplateDirs['MBTMPL_DIR'], 'ModelModule.txt'),
+        
         'FTPath'  : pjoin(TMPL_DIR,'ModelFormTemplate.txt'),
         'FBTPath' : pjoin(MvcTemplateDirs['MBTMPL_DIR'], 'ModelFormModule.txt'),
+        
         'VTPath'  : pjoin(TMPL_DIR,'ViewTemplate.txt'),
         'CTPath'  : pjoin(TMPL_DIR,'ControllerTemplate.txt'),
         'CBTPath' : pjoin(MvcTemplateDirs['MBTMPL_DIR'],'ControllerModule.txt'),
@@ -89,7 +91,7 @@ types =\
         'int'       : 'db.IntegerProperty',
         'float'     : 'db.FloatProperty',
         'ref'       : 'db.ReferenceProperty',
-        'selfref'   : 'db.ReferenceProperty',
+        'selfref'   : 'db.SelfReferenceProperty',
         'list'      : 'db.ListProperty',
         'strlist'   : 'fb.StringListProperty',
         'cat'       : 'db.CategoryProperty',
