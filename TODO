@@ -1,0 +1,71 @@
+===========================
+TODO List for HalWebProject
+===========================
+	
+	1. Packager: list the packages. (IMPORTANT)
+	2. Routes routing
+	3. Tornado integration
+	4. Repository implementation (IMPORTANT)
+	    - pack(Done), unpack(Done), update, delete
+	    - required packages
+	    - pypy, easy_install packages generation maybe???
+	        - Think about this
+	5. Documentation (IMPORTANT)
+	6. I18n Internationalisation (IMPORTANT)
+	    - Make it simple
+	    - pom files to be generated automaticly
+	    - To be independent of the templating system
+	    - Use the known libraries that do this.
+	    - Will need to see what to do about the caching on this
+	 
+	7. Web Page
+
+	8. Create repo website
+	   -host it somewhere
+	
+	9. Create proxy renderers(Django, Jinja, Hal e.t.c) in order to be able to switch the templating systems without controller changes.
+	    - What about the forms??? Think about it First
+	    - Think about caching mechanism (Appengine will have memcache for sure)
+	10. Compile a set of items to create independent framework
+		- Tornado as a web server
+		- Jinja templating system
+		- memcache (distibuted cache)
+		- Routes as a routing dispatcher
+		- Hal as web framework
+	11. Make some easy to start UI
+		- Maybe self hosted Hall application??
+		- Maybe some simple tkniter??? 
+		- THink about it
+	12. Git (initialy create a git repo for the project)
+	    - only with the flag *--git*
+	    - Some pygit lirary would do this
+	13. PyPy setup for Hal
+	    - >>>easy_install hal 
+	    - >>>pypy hal
+	    - dependencies 
+	    	- tornado
+	    	- routes
+	     	- appengine	   
+	14. Strategy Enum that will be used for creating the templates for Controllers, Models and ModelForms
+	    - Comments 
+		File Per Item
+		File Per Module
+		
+	--------------
+	Estimates
+	--------------
+		Rough Estimate:
+		   6 months    
+		First Release:
+		   Estiamte: 3 months:
+		    - No `13`.
+		    - Yes `12`
+		    - Yes `11`
+		    - No `10`
+		    - Yes `9`
+		    - No `8`
+		    - No `7`
+		    - Yes `6`
+		    - No `5`
+		    - Partialy `4`
+	    - Yes `1,2,3`
