@@ -5,6 +5,8 @@ import shutil
 import sys
 import test_imports
 sys.modules['imports'] = test_imports
+globals()['imports']= test_imports
+locals()['imports']= test_imports
 #imports is needed for the initial configuration of the project
 #the path of the project is given there and well as the path of the templates directory
 

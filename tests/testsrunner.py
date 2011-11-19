@@ -1,3 +1,8 @@
+import sys
+import test_imports
+sys.modules['imports'] = test_imports
+globals()['imports']=test_imports
+locals()['imports']=test_imports
 import unittest
 import codeBlockHelperTests
 import BlockTestCases

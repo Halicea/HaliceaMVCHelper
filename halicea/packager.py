@@ -11,6 +11,7 @@ cblPy = InPythonBlockLocator()
 from copy import deepcopy
 from config import proj_settings
 import config
+
 def restrictBaseProjectAccess(func):
     def ret(*args, **kwargs):
         if os.path.dirname(config.PROJ_LOC) == config.INSTALL_LOC:
