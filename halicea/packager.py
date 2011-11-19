@@ -10,14 +10,6 @@ cblHal = HalCodeBlockLocator()
 cblPy = InPythonBlockLocator()
 from copy import deepcopy
 from config import proj_settings
-import config
-def protectBaseProjectChange(method):
-    def result(*args, **kwargs):
-        if config.INSTALL_LOC == os.path.dirname(config.PROJ_LOC):
-            raise Exception('You are not allowed to run this operation against the base Hal Project')
-        return method(*args, **kwargs)
-    return result
-    
 class Packager(object):
     def __init__(self, input_method):
         self.input_method= input_method
@@ -70,8 +62,6 @@ class Packager(object):
                 src = pjoin(source, srcName)
                 dest = Template(self.packageStructure[key]).substitute(package=packageName)
                 self.copyItem(src, dest, dType)
-    
-    @protectBaseProjectChange
     def createPackages(self, dirPath, root = proj_settings.PROJ_LOC):
         if not os.path.exists(dirPath):
             os.makedirs(dirPath)
@@ -98,13 +88,11 @@ class Packager(object):
                 return
         else:
             self.__pack__(packageName, destination)
-    @protectBaseProjectChange
     def unpack(self, packageName, source):
         if os.path.exists(source):
             self.__unpack__(packageName, source)
         else:
             print 'Such Package does not exist'
-    @protectBaseProjectChange
     def delete(self, pname):
         handlermapblock1 = pname+settings.CONTROLLER_MODULE_SUFIX
         handlermapblock2 = pname
