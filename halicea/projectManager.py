@@ -3,7 +3,7 @@ from os.path import basename, join as pjoin, dirname, abspath
 from ioUtils import copy_directory
 from consoleHelpers import ask
 from config import proj_settings as settings
-from config import installPath as rooot
+from config import INSTALL_LOC as rooot
 installPath = pjoin(rooot, 'baseProject')
 def newProject(toPath):
     doCopy = True

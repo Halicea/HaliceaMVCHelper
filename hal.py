@@ -3,7 +3,7 @@ import sys, subprocess, webbrowser, os
 from os.path import join as pjoin
 from string import Template
 #-----------------
-from halicea.config import installPath, PROJ_LOC
+from halicea.config import INSTALL_LOC, PROJ_LOC
 from halicea.consoleHelpers import extractAgrs
 from halicea.ioUtils import saveTextToFile, getTextFromPath
 from halicea.mvcManager import makeMvc, delMvc
@@ -11,7 +11,7 @@ from halicea.projectManager import newProject
 from halicea.codeBlocksHelpers import HalCodeBlockLocator, InPythonBlockLocator
 from halicea.templateHelpers import convertToReal, convertToTemplate
 from halicea import config
-from halicea import packager
+from halicea.packager import Packager
 cblPy = InPythonBlockLocator()
 cblHal = HalCodeBlockLocator()
 if os.name!='nt':
@@ -67,8 +67,9 @@ baseusage = """
 Usage haliceamvc.py [projectPath]
 Options: [create]
 """
-isInInstall = True #os.path.exists(pjoin(installPath, '.InRoot'))
+isInInstall = True #os.path.exists(pjoin(INSTALL)LOC, '.InRoot'))
 def main(args):
+    packager = Packager(raw_input)
     # can do this in install on local mode
     if args[0]=='new' and len(args)>2:
         if args[1]=='template':

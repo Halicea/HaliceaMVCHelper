@@ -2,27 +2,8 @@ import os
 import sys
 from os.path import join as pjoin
 from os.path import abspath, dirname, basename
-#Where am I: Hals root directory
-installPath = dirname(dirname(abspath(__file__)))
-replacementsDict = {'halweb': installPath,}
-prj = pjoin(os.getcwd(),'.halProject')
-if not os.path.exists(prj):
-    prj = pjoin(installPath, '.halProject')
+from imports import PROJ_LOC, INSTALL_LOC,TEMPLATES_LOC
 
-def getProjectInfo():
-    #nix style config file parser with available dictionary replacement of the values
-    result = dict(set([(x.split('=')[0].strip(),x.split('=')[1].strip()) for x in \
-                      open(prj,'r').readlines() \
-                      if x.strip()[0]!='#' and x.strip()]))
-    for k in result.iterkeys():
-        for rk in replacementsDict:
-            result[k] = result[k].replace('${'+rk+'}',replacementsDict[rk])
-    return result
-#Set it up to be from the working directory
-PROJ_LOC = os.path.abspath(pjoin(os.path.dirname(prj), getProjectInfo()['project']))
-
-#Add the project into the project path
-sys.path.append(PROJ_LOC)
 APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
 APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
 if os.name == 'nt':
@@ -31,19 +12,16 @@ if os.name == 'nt':
 elif sys.platform=='darwin':
     APPENGINE_PATH = '/Users/costa/DevApps/google_appengine'
 
-
-
-#Set django in pythonpath
+#Import the needed libraries including the project
 sys.path.append(APPENGINE_PATH)
 sys.path.append(pjoin(APPENGINE_PATH, 'lib'))
 sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'django_1_2' ))
 sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'webob' ))
 sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'yaml','lib' ))
+sys.path.append(PROJ_LOC)
 ###
-
 os.environ['DJANGO_SETTINGS_MODULE']  = 'conf.settings'
 import renderers
-
 import conf.settings as proj_settings
 
 #default model Inherit
@@ -60,7 +38,7 @@ formInheritsFrom = 'ModelForm'
 #Template Renderer Configuration
 TEMPLATE_RENDERER = renderers.Django
 #Template Configuration
-TMPL_DIR = pjoin(getProjectInfo()['templates'],'WEBOBTemplates', '{{magicLevel}}')
+TMPL_DIR = pjoin(TEMPLATES_LOC,'WEBOBTemplates', '{{magicLevel}}')
 MvcTemplateDirs = \
     {
         'TMPLR_DIR'   : TMPL_DIR,

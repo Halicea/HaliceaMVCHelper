@@ -69,3 +69,38 @@ TODO List for HalWebProject
 		    - No `5`
 		    - Partialy `4`
 	    - Yes `1,2,3`
+	-------------------------
+	OLD TODO:
+	-------------------------
+		- Create Yaml Configuration for halicea:
+			- Create Yaml Configuration for halicea:
+		  - force
+		- Extend Package Structure:
+		  - Create File (Yaml Probably) that will contain the version, owner, package guid
+		- Create Update Mechanism for the framework:
+		  - Check Update 
+		- Enable sub packages functionality:
+		  - Creating sub package
+		  - deleting subpackage
+		  - packing package with all subpackages
+		- Create Package Reportistory Structure:
+		  - Small Web App that will host the packages (Probably just static dir, and list of the files)
+		DONE:
+		- Decide if i'll need separate Directory for making the forms
+		  - ModelForms are kept in separate module asside of Models now 
+	
+	  - force
+		- Extend Package Structure:
+		  - Create File (Yaml Probably) that will contain the version, owner, package guid
+		- Create Update Mechanism for the framework:
+		  - Check Update 
+		- Enable sub packages functionality:
+		  - Creating sub package
+		  - deleting subpackage
+		  - packing package with all subpackages
+		- Create Package Reportistory Structure:
+		  - Small Web App that will host the packages (Probably just static dir, and list of the files)
+		DONE:
+		- Decide if i'll need separate Directory for making the forms
+		  - ModelForms are kept in separate module asside of Models now 
+

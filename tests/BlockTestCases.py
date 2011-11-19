@@ -8,11 +8,14 @@ import os
 from os.path import join as pjoin
 from halicea.baseClasses import Block, BlockTypes
 from halicea.codeBlocksHelpers import *
-
+import sys
 resDir = pjoin(os.path.dirname(__file__), 'resources')
 class BlockTestCases(unittest.TestCase):
     """A Test Class for the Block Class"""
     def setUp(self):
+        #setup the project
+        #just change the config file and import the project
+        
         self.bl = Block(None, 'root',blType=BlockTypes.BLOCK)
         self.chld1 = Block(None, 'child1',BlockTypes.LINE)
         self.chld2 = Block(None, 'child2', BlockTypes.BLOCK)
