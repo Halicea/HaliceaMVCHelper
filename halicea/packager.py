@@ -10,6 +10,14 @@ cblHal = HalCodeBlockLocator()
 cblPy = InPythonBlockLocator()
 from copy import deepcopy
 from config import proj_settings
+import config
+def restrictBaseProjectAccess(func):
+    def ret(*args, **kwargs):
+        if os.path.dirname(config.PROJ_LOC) == config.INSTALL_LOC:
+            raise Exception('Not allowed to run this operation against Hal')
+        return func(*args, **kwargs)
+    return ret
+
 class Packager(object):
     def __init__(self, input_method):
         self.input_method= input_method
@@ -26,7 +34,7 @@ class Packager(object):
         'Controllers.py_f':pjoin(proj_settings.CONTROLLERS_DIR, '${package}' + proj_settings.CONTROLLER_MODULE_SUFIX + '.py'),
         'url.map':proj_settings.HANDLER_MAP_FILE,
         }
-    
+    @restrictBaseProjectAccess
     def copyItem(self, src, dest, dType):
         if not os.path.exists(os.path.dirname(dest)):
             os.makedirs(os.path.dirname(dest))
@@ -62,6 +70,7 @@ class Packager(object):
                 src = pjoin(source, srcName)
                 dest = Template(self.packageStructure[key]).substitute(package=packageName)
                 self.copyItem(src, dest, dType)
+    @restrictBaseProjectAccess
     def createPackages(self, dirPath, root = proj_settings.PROJ_LOC):
         if not os.path.exists(dirPath):
             os.makedirs(dirPath)
@@ -74,6 +83,7 @@ class Packager(object):
                 open(pjoin(tail, head, '__init__.py'), 'w').close()
             tail, head = os.path.split(tail)
         return True
+
     def pack(self, packageName, destination):
         if os.path.exists(destination):
             if os.path.isdir(destination):
@@ -88,11 +98,13 @@ class Packager(object):
                 return
         else:
             self.__pack__(packageName, destination)
+    @restrictBaseProjectAccess
     def unpack(self, packageName, source):
         if os.path.exists(source):
             self.__unpack__(packageName, source)
         else:
             print 'Such Package does not exist'
+    @restrictBaseProjectAccess
     def delete(self, pname):
         handlermapblock1 = pname+settings.CONTROLLER_MODULE_SUFIX
         handlermapblock2 = pname
