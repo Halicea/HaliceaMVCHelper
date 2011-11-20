@@ -51,9 +51,8 @@ TODO List for HalWebProject
 		File Per Item
 		File Per Module
 		
-	--------------
 	Estimates
-	--------------
+	==============
 		Rough Estimate:
 		   6 months    
 		First Release:
@@ -69,9 +68,8 @@ TODO List for HalWebProject
 		    - No `5`
 		    - Partialy `4`
 	    - Yes `1,2,3`
-	-------------------------
 	OLD TODO:
-	-------------------------
+	=========================
 		- Create Yaml Configuration for halicea:
 			- Create Yaml Configuration for halicea:
 		  - force
