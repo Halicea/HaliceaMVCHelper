@@ -11,7 +11,7 @@ Offcourse you need to have Appengine on your system
 
 Install
 -------
-From the source distribution, extract the tarball and run ::
+Any of this three shoud work
 
     shell>python setup.py install
     or

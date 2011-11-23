@@ -10,7 +10,7 @@ print find_packages('src')
 setup(name="HalWeb",
       version='0.5.5',
       description='Halicea Web Framework(HalWeb) is an Appengine MVC web framework for real easy, understandable and rapid development',
-      long_description=read('README'),
+      long_description=read('README.rst'),
       author='Costa Halicea',
       author_email ='costa@halicea.com',
       url='http://halweb.halicea.com',
