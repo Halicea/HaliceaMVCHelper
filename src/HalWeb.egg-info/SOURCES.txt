@@ -12,7 +12,6 @@ src/halicea/.halProject
 src/halicea/__init__.py
 src/halicea/hal.py
 src/halicea/halicea_manage.py
-src/halicea/Templates/__init__.py
 src/halicea/Templates/Django1Templates/magic1/AtomTemplate.txt
 src/halicea/Templates/Django1Templates/magic1/ControllerTemplate.txt
 src/halicea/Templates/Django1Templates/magic1/ModelFormTemplate.txt
@@ -68,7 +67,6 @@ src/halicea/Templates/WEBOBTemplates/magic3/OperationTemplates/details.txt
 src/halicea/Templates/WEBOBTemplates/magic3/OperationTemplates/edit.txt
 src/halicea/Templates/WEBOBTemplates/magic3/OperationTemplates/index.txt
 src/halicea/Templates/WEBOBTemplates/magic3/OperationTemplates/save.txt
-src/halicea/baseProject/__init__.py
 src/halicea/baseProject/app.yaml
 src/halicea/baseProject/handlerMap.py
 src/halicea/baseProject/imports.py

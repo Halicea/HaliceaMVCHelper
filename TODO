@@ -18,7 +18,7 @@ TODO List for HalWebProject
 	    - Use the known libraries that do this.
 	    - Will need to see what to do about the caching on this
 	 
-	7. Web Page
+(PR)7. Web Page
 
 	8. Create repo website
 	   -host it somewhere
@@ -36,10 +36,12 @@ TODO List for HalWebProject
 		- Maybe self hosted Hall application??
 		- Maybe some simple tkniter??? 
 		- THink about it
-	12. Git (initialy create a git repo for the project)
+(OK)12. Git (initialy create a git repo for the project)
 	    - only with the flag *--git*
 	    - Some pygit lirary would do this
-	13. PyPy setup for Hal
+	    - Not Needed since there is already otpion thru hal to pas git command
+	    -----------------------------------------------------------------------
+(OK)13. PyPy setup for Hal  
 	    - >>>easy_install hal 
 	    - >>>pypy hal
 	    - dependencies 
@@ -51,6 +53,7 @@ TODO List for HalWebProject
 		File Per Item
 		File Per Module
 		
+	15. Change the baseProject to use lower letters, to comply to python package naming standard
 	Estimates
 	==============
 		Rough Estimate:

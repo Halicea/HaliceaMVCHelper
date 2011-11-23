@@ -3,8 +3,8 @@ import sys
 import logging
 try:
     from halicea import hal
-    print "Hal web is not located in your python path"
 except:
+    print "Hal web is not located in your python path"
     print "accessing halweb thru path {{hal_path}}"
     sys.path.append("{{hal_path}}")
     import hal

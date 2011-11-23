@@ -1,6 +1,6 @@
 
+	@View('{{m.Name}}_index.html}}')
     def index(self, *args):
-        self.SetTemplate(templateName="{{m.Name}}_index.html")
         results =None
         index = 0; count=20
         try:
