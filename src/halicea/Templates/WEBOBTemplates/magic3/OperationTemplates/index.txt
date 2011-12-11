@@ -1,5 +1,5 @@
 
-	@View('{{m.Name}}_index.html}}')
+	@View(templateName='{{m.Name}}_index.html')
     def index(self, *args):
         results =None
         index = 0; count=20
