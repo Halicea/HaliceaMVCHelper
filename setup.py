@@ -8,14 +8,14 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 print find_packages('src')
 setup(name="HalWeb",
-      version='0.5.5',
+      version='0.5.6',
       description='Halicea Web Framework(HalWeb) is an Appengine MVC web framework for real easy, understandable and rapid development',
       long_description=read('README.rst'),
       author='Costa Halicea',
       author_email ='costa@halicea.com',
       url='http://halweb.halicea.com',
       package_dir = {'':'src'},
-      scripts = ['src/halicea/hal.py', 'src/halicea/halicea_manage.py'],
+      scripts = ['src/hal.py'],
       packages= find_packages('src'),
       #modules=['hal.py', 'halicea_manage.py'],
       keywords = "gae appengine framework google python web halicea halweb",
