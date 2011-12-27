@@ -1,7 +1,7 @@
 MANIFEST.in
 TODO
 setup.py
-src/hal.py
+src/halicea/hal.py
 src/HalWeb.egg-info/PKG-INFO
 src/HalWeb.egg-info/SOURCES.txt
 src/HalWeb.egg-info/dependency_links.txt
@@ -10,6 +10,7 @@ src/HalWeb.egg-info/not-zip-safe
 src/HalWeb.egg-info/top_level.txt
 src/halicea/.halProject
 src/halicea/__init__.py
+src/halicea/hal.py
 src/halicea/halicea_manage.py
 src/halicea/Templates/Django1Templates/magic1/AtomTemplate.txt
 src/halicea/Templates/Django1Templates/magic1/ControllerTemplate.txt

@@ -45,8 +45,8 @@ setup(name="HalWeb",
              'Topic :: Text Processing :: Markup :: HTML',
           ],
       entry_points={
-	'console_scripts': [
-            'hal = hal:real_main',
+		'console_scripts': [
+            'hal = halicea.hal:real_main',
             #'halicea = hal:real_main',
         ]
 	},
