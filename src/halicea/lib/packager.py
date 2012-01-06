@@ -6,6 +6,7 @@ from baseClasses import Block
 from locators import *
 from codeBlocksHelpers import HalCodeBlockLocator, InPythonBlockLocator
 import dirtree
+from halicea.lib.baseClasses import Block
 cblHal = HalCodeBlockLocator()
 cblPy = InPythonBlockLocator()
 from copy import deepcopy
@@ -33,8 +34,16 @@ class Packager(object):
         'Forms.py_f':pjoin(proj_settings.FORM_MODELS_DIR, '${package}'+proj_settings.MODEL_FORM_MODULE_SUFIX+'.py'),
         'Models.py_f':pjoin(proj_settings.MODELS_DIR, '${package}' + proj_settings.MODEL_MODULE_SUFIX + '.py'),
         'Controllers.py_f':pjoin(proj_settings.CONTROLLERS_DIR, '${package}' + proj_settings.CONTROLLER_MODULE_SUFIX + '.py'),
-        'url.map':proj_settings.HANDLER_MAP_FILE,
+        'Forms_d':pjoin(proj_settings.FORM_MODELS_DIR, '${package}'),
+        'Models_d':pjoin(proj_settings.MODELS_DIR, '${package}'),
+        'Controllers_d':pjoin(proj_settings.CONTROLLERS_DIR, '${package}'),
+        'tests_d':pjoin(proj_settings.TESTS_DIR, '${package}'),
+        'docs_d':pjoin(proj_settings.DOCS_DIR, '${package}'),
+        'lib_d':pjoin(proj_settings.LIB_DIR,'${package}'),
+        'app.py_f':pjoin(proj_settings.APPS_DIR, '${package}.py'),
+        'handlerMap.py':proj_settings.HANDLER_MAP_FILE,
         }
+        
     @restrictBaseProjectAccess
     def copyItem(self, src, dest, dType):
         if not os.path.exists(os.path.dirname(dest)):
@@ -59,11 +68,22 @@ class Packager(object):
                 dest = pjoin(destination, destName)
                 src = Template(self.packageStructure[key]).substitute(package=packageName)
                 self.copyItem(src, dest, dType)
-        handlerMap = Block.loadFromFile(proj_settings.HANDLER_MAP_FILE, cblPy)
-        map = handlerMap['ApplicationControllers'][packageName+proj_settings.CONTROLLER_MODULE_SUFIX]
-        imports  = handlerMap['imports']
-        #TODO finish with imports part
         
+        #Url Mappings Handle
+        handlerMap = Block.loadFromFile(proj_settings.HANDLER_MAP_FILE, cblPy)
+        urlmaps = handlerMap['ApplicationControllers'][packageName+proj_settings.CONTROLLER_MODULE_SUFIX]
+        if(urlmaps):
+            imports  = handlerMap['imports']
+            lines = [l for l in str(imports).splitlines() if packageName+proj_settings.CONTROLLER_MODULE_SUFIX in l]
+            handlersFile = Block(None, 'root', blType=2)
+            new_import = Block.createEmptyBlock('imports', cblPy)
+            handlersFile.append(new_import)
+            new_import.appendLines(lines)
+            handlersFile.appendText("webapphandlers = [")
+            handlersFile.append(Block.loadFromText(str(urlmaps), cblPy))
+            handlersFile.appendText("]")
+            handlersFile.saveToFile(pjoin(destination, 'handlerMap.py'), 'w')
+            
     def __unpack__(self, packageName, source):
         for key in self.packageStructure.keys():
             if key.find('_')>0:
@@ -71,6 +91,14 @@ class Packager(object):
                 src = pjoin(source, srcName)
                 dest = Template(self.packageStructure[key]).substitute(package=packageName)
                 self.copyItem(src, dest, dType)
+        if os.path.exists(pjoin(source, 'handlerMap.py')):
+            srcHandlers = Block.loadFromFile(pjoin(source, 'handlerMap.py'))
+            handlerMap = Block.loadFromFile(proj_settings.HANDLER_MAP_FILE, cblPy)
+            lines = str(srcHandlers['imports']).splitlines()
+            handlerMap["imports"].append(Block.loadFromLines(lines, 'root', cblPy))
+            handlerMap['ApplicationControllers'].append(Block.loadFromText(srcHandlers[packageName+proj_settings.CONTROLLER_MODULE_SUFIX], cblPy))
+            handlerMap.saveToFile(proj_settings.HANDLER_MAP_FILE, 'w')
+
     @restrictBaseProjectAccess
     def createPackages(self, dirPath, root = proj_settings.PROJ_LOC):
         if not os.path.exists(dirPath):

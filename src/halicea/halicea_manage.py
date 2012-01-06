@@ -9,4 +9,4 @@ except:
     sys.path.append("{{hal_path}}")
     import hal
 if __name__=='__main__':
-    hal.main_safe(sys.argv)
+    hal.main_safe(*sys.argv)

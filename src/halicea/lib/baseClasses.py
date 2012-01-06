@@ -200,7 +200,7 @@ class Block(object):
     def __iter__(self):
         return self.Children
 
-    def __str__(self):
+    def __str__(self, include_root=True):
         if self.BlockType == BlockTypes.LINE:
             return self.Name
         else:
