@@ -8,8 +8,10 @@ from conf.settings import DEBUG
 from lib import messages
 from lib.halicea import ContentTypes as ct
 import traceback,logging
-#from Controllers.MyRequestHandler import MyRequestHandler as mrh
+from lib.halicea import cache
 import warnings
+from lib.halicea.helpers import ClassImport
+
 def property(function):
     keys = 'fget', 'fset', 'fdel'
     func_locals = {'doc':function.__doc__}
@@ -27,7 +29,6 @@ def CopyDecoratorProperties(func, new_func):
     new_func.__name__ = func.__name__
     new_func.__doc__ = func.__doc__
     new_func.__dict__.update(func.__dict__)
-
 
 def deprecated(func):
     """This is a decorator which can be used to mark functions
@@ -50,6 +51,7 @@ class ClearDefaults(object):
             return f(request, *args, **kwargs)
         CopyDecoratorProperties(f, new_f)
         return new_f
+
 class Post(object):
     def __init__(self):
         pass
@@ -115,9 +117,13 @@ class Handler(object):
 class View(object):
     def __init__(self, **template):
         self.template = template
+        
     def __call__(self, f):
         def new_f(request, *args, **kwargs):
-            request.SetTemplate(**self.template)
+            if(hasattr(self.template, '__call__')):
+                request.SetTemplate(**self.template(request, *args, **kwargs))
+            else:
+                request.SetTemplate(**self.template)
             return f(request, *args, **kwargs)
         CopyDecoratorProperties(f, new_f)
         return new_f
@@ -236,3 +242,96 @@ class ExtraContext(object):
         CopyDecoratorProperties(f, new_f)
         return new_f
 # End Decorators for handler Methods
+
+#Cache Decorators
+
+#TODO: Make it as a class and change the name of the returning funciton. 
+#also add it into the decorators module
+class Cached(object):
+    @staticmethod
+    def resName(res , request, *args, **kwargs):
+        #fully identify the source by it's name
+        return '__RESOURCE__'+request.__module__+"."+request.__name__+'.'+res.__name__+\
+                        '('+\
+                            ','.join(set([\
+                                ','.join([str(x) for x in args]),\
+                                ','.join([x+'='+str(kwargs[x]) for x in kwargs.iterkeys()])
+                            ]))+\
+                        ')'
+    @staticmethod
+    def clear(action, *args, **kwargs):
+        cache.delete(Cached.resName(action, action.im_class, *args, **kwargs))
+        
+    def __init__(self, time=0, namespace=None, condition=None):
+        self.namespace=namespace
+        self.time=time
+        self.condition = condition
+    def __call__(self, f):
+        
+        def new_f(request, *args, **kwargs):
+            if not DEBUG and (not not self.condition or self.condition(request, *args, **kwargs)):
+                resName = Cached.resName(f, request.__class__,*args, **kwargs)
+                res = cache.get(resName)
+                if not res:
+                    res = f(request, *args, **kwargs)
+                    cache.set(resName, res, self.time, namespace=self.namespace)
+                return res
+            else:
+                return f(request, *args, **kwargs)
+        CopyDecoratorProperties(f, new_f)
+        return new_f
+
+class ClearCacheAfter(object):
+    """Clears the cache of a given controller action after the excution of the called action
+        Example:
+            
+            @ClearCacheAfter(SomeControllerClass.Method, *methodargs, **methodskwargs)
+            def delete(self, arguments)
+    """
+    def __init__(self, action, params_function=None):
+        if params_function:
+            self.params_f = params_function
+        else:
+            self.params_f = lambda r, *args, **kwargs: ((),{})
+        if isinstance(action, str):
+            a = action.split('.')
+            klass = ClassImport('.'.join(a[:-1]))
+            self.action = getattr(klass, a[-1])
+        else:
+            self.action = action
+    def __call__(self, f):
+        def new_f(request, *args, **kwargs):
+            res = f(request, *args, **kwargs)
+            args_p, kwargs_p = self.params_f(request, *args, **kwargs)
+            Cached.clear(self.action, *args_p, **kwargs_p)
+            return res
+        CopyDecoratorProperties(f, new_f)
+        return new_f
+    
+class ClearCacheFirst(object):
+    def __init__(self, action, params_function=None):
+        if params_function:
+            self.params_f = params_function
+        else:
+            self.params_f = lambda r, *args, **kwargs: ((),{})
+        self.action = action
+    def __call__(self, f):
+        def new_f(request, *args, **kwargs):
+            args_p, kwargs_p = self.params_function(request, *args, **kwargs)
+            Cached.clear(self.action, *args_p, **kwargs_p)
+            return f(request, *args, **kwargs)
+        CopyDecoratorProperties(f, new_f)
+        return new_f    
+class RespondWith():
+    def __init__(self, contentType):
+        if isinstance(contentType, str):
+            self.respond = lambda request, *args, **kwargs: contentType
+        else:
+            self.respond = contentType
+    def __call__(self, f):
+        def new_f(request, *args, **kwargs):
+            request.ResponseType = self.respond(request, *args, **kwargs)
+            return f(request, *args, **kwargs)
+        CopyDecoratorProperties(f, new_f)
+        return new_f
+        

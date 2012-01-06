@@ -1,12 +1,11 @@
 #{%block imports%}
-from Controllers import BaseControllers
-from Controllers import ShellControllers
-from Controllers import HalWebControllers
+from controllers import BaseControllers
+from controllers import ShellControllers
+from controllers import HalWebControllers
+from controllers import cmsControllers
 #{%endblock%}
 webapphandlers = [
 #{%block ApplicationControllers %}
-
-
 #{%block BaseControllers %}
 ('/Login', BaseControllers.LoginController),
 ('/Login/(.*)', BaseControllers.LoginController),
@@ -24,10 +23,27 @@ webapphandlers = [
 ('/admin/stat.do', ShellControllers.StatementController),
 #{%endblock%}
 
+#{%block cmsControllers%}
+#for diplaying contents created by a user.
+('/cms/contents', cmsControllers.CMSContentController.new_factory(op='my_contents')),
+#for diplaying specifyc content by it's key
+('/cms/content/(.*)', cmsControllers.CMSContentController),
+#links page
+('/cms/links', cmsControllers.CMSLinksController),
+#display pages by tag
+('/cms/tag/(.*)', cmsControllers.CMSPageController.new_factory(op='index')),
+#display a link
+('/cms/(.*)', cmsControllers.CMSPageController.new_factory(op='view')),
+#display latest pages
+('/cms/pages', cmsControllers.CMSPageController.new_factory(op='index', menu='pages')),
+#menus controllers , singlemenu by name
+('/menu/(.*)', cmsControllers.MenuController.new_factory(op='view')),
+('/menu', cmsControllers.MenuController),
+#{%endblock%}
+
 #{%block HalWebControllers%}
 ('/', HalWebControllers.WelcomeController),
 #{%endblock%}
-
 #{%endblock%}
 ]
 

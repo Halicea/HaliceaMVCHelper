@@ -8,7 +8,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 print find_packages('src')
 setup(name="HalWeb",
-      version='0.5.6',
+      version='0.6.0',
       description='Halicea Web Framework(HalWeb) is an Appengine MVC web framework for real easy, understandable and rapid development',
       long_description=read('README.rst'),
       author='Costa Halicea',
@@ -45,8 +45,8 @@ setup(name="HalWeb",
              'Topic :: Text Processing :: Markup :: HTML',
           ],
       entry_points={
-		'console_scripts': [
-            'hal = halicea.hal:real_main',
+	   'console_scripts': [
+            'hal = hal:real_main',
             #'halicea = hal:real_main',
         ]
 	},

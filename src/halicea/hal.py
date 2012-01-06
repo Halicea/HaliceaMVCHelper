@@ -122,11 +122,17 @@ def main(args):
             options = ''
             if len(args)>1:
                 options = ' '.join(args[1:])
+            
             command = Template('python $appserver $proj $options').substitute(
                                     appserver = pjoin(config.APPENGINE_PATH, 'dev_appserver.py'),
                                     proj=config.PROJ_LOC,
                                     options = options)
+            
             # print command
+#            sys.path.append(config.APPENGINE_PATH)
+#            from google.appengine.dev_appserver import *
+#            run_file(os.path.join(config.APPENGINE_PATH, 'dev_appserever.py'), globals())
+#            dev_appserver_main(args[1:])
             subprocess.Popen(command, shell=True, stdout=sys.stdout, stdin=sys.stdin).wait()
             #webbrowser.open('http://localhost:8080')
         elif args[0]=='pack' and len(args)>3:
@@ -176,6 +182,6 @@ def main_safe(*allargs):
     except KeyboardInterrupt:
         print 'Halicea Command Console exited'
 def real_main():
-    main_safe(sys.argv)
+    main_safe(*sys.argv)
 if __name__ == '__main__':
     real_main()

@@ -4,25 +4,19 @@ from os.path import join as pjoin
 from os.path import abspath, dirname, basename
 from imports import PROJ_LOC, INSTALL_LOC,TEMPLATES_LOC
 
-APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
-APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
-if os.name == 'nt':
-    #PPENGINE_PATH = 'C:\\Users\\Costa\\Appengine'
-    APPENGINE_PATH = 'C:\\DevApps\\google_appengine'
-elif sys.platform=='darwin':
-    APPENGINE_PATH = '/Users/costa/DevApps/google_appengine'
-
 #Import the needed libraries including the project
+sys.path.append(PROJ_LOC)
+import conf.settings as proj_settings
+APPENGINE_PATH=proj_settings.APPENGINE_PATH
 sys.path.append(APPENGINE_PATH)
 sys.path.append(pjoin(APPENGINE_PATH, 'lib'))
 sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'django_1_2' ))
 sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'webob' ))
 sys.path.append(pjoin(APPENGINE_PATH, 'lib', 'yaml','lib' ))
-sys.path.append(PROJ_LOC)
+
 ###
 os.environ['DJANGO_SETTINGS_MODULE']  = 'conf.settings'
 import renderers
-import conf.settings as proj_settings
 
 #default model Inherit
 modelInheritsFrom = 'db.Model'

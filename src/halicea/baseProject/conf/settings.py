@@ -3,10 +3,31 @@
 import os
 from os.path import join
 #from lib.halicea import deCMSPageControllerfaultControllerMethods as dcm
+RUN = 'appengine'
 DEBUG = True
 TEMPLATE_DEBUG = True
 DEFAULT_CHARSET ='UTF-8'
+
 from lib.halicea import dummyControllerMethods as dcm
+DEFAULT_OPERATIONS =\
+    {
+        'default':{'method':dcm.index, 'view':False},
+        'index':{'method':dcm.index, 'view':True}, 
+        'view':{'method':dcm.view, 'view':True},
+        'edit':{'method':dcm.edit, 'view':True},
+        'new':{'method':dcm.edit, 'view':False},
+        'save':{'method':dcm.save, 'view':False},
+        'delete':{'method':dcm.delete, 'view':False},
+     }
+
+PLUGINS =\
+    [
+       ("Links", 'controllers.cmsControllers.CMSLinksController'),
+       ("Contents", 'controllers.cmsControllers.CMSContentController'),
+       ("Menus", 'controllers.cmsControllers.MenuController'),
+       ("AjaxForm", 'lib.halicea.plugins.AjaxForm'),
+       ("Authentication", 'lib.halicea.plugins.AuthenticationMixin'),
+    ]
 APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
 if os.name == 'nt':
     APPENGINE_PATH = '/home/costa/DevApps/google_appengine'
@@ -15,21 +36,27 @@ if os.name == 'nt':
 #we define the path relatively to our settings file
 PROJ_LOC = os.path.dirname(os.path.dirname(__file__))
 
-#MVC Directories
-MODELS_DIR = join(PROJ_LOC,'Models')
-VIEWS_DIR = join(PROJ_LOC,'Views')
-VIEWS_RELATIVE_DIR = 'Views'
-FORM_MODELS_DIR = join(PROJ_LOC, 'Forms')
-CONTROLLERS_DIR = join(PROJ_LOC, 'Controllers')
+#MVC Directories  
+#!--DO NOT CHANGE THIS UNLESS YOU KNOW WHAT YOU ARE DOING--!
+MODELS_DIR = join(PROJ_LOC,'models')
+VIEWS_DIR = join(PROJ_LOC,'views')
+VIEWS_RELATIVE_DIR = 'views'
+FORM_MODELS_DIR = join(PROJ_LOC, 'forms')
+CONTROLLERS_DIR = join(PROJ_LOC, 'controllers')
 BASE_VIEWS_DIR = join(VIEWS_DIR, 'bases')
 BLOCK_VIEWS_DIR = join(VIEWS_DIR, 'blocks')
 PAGE_VIEWS_DIR = join(VIEWS_DIR, 'pages')
 FORM_VIEWS_DIR = join(VIEWS_DIR, 'forms')
-STATIC_DATA_DIR = join(PROJ_LOC, 'StaticData')
+STATIC_DATA_DIR = join(PROJ_LOC, 'static_data')
 JSCRIPTS_DIR = join(STATIC_DATA_DIR, 'jscripts')
 IMAGES_DIR = join(STATIC_DATA_DIR, 'images')
 STYLES_DIR = join(STATIC_DATA_DIR, 'styles')
 HANDLER_MAP_FILE = join(PROJ_LOC, 'handlerMap.py')
+TESTS_DIR = join(PROJ_LOC, 'tests')
+DOCS_DIR = join(PROJ_LOC, 'docs')
+APPS_DIR = join(PROJ_LOC, 'apps')
+LIB_DIR = join(PROJ_LOC, 'lib')
+REPOS_DIR = join(PROJ_LOC, 'repositories')
 #End MVC Directories
 
 #MVC Sufixes
@@ -50,20 +77,8 @@ CONTROLLER_EXTENSTION = '.py'
 MODEL_EXTENSTION = '.py'
 MODEL_FORM_EXTENSTION = '.py'
 VIEW_EXTENSTION = '.html'
-
-template_debug=True
-show_errors = True
 MagicLevel = 3
 
-DEFAULT_OPERATIONS = {
-                      'default':{'method':dcm.index, 'view':False},
-                      'index':{'method':dcm.index, 'view':True}, 
-                      'details':{'method':dcm.details, 'view':True},
-                      'edit':{'method':dcm.edit, 'view':True},
-                      'insert':{'method':dcm.save, 'view':False},
-                      'update':{'method':dcm.save, 'view':False},
-                      'delete':{'method':dcm.delete, 'view':False},
-                     }
 
 #DJANGO APP SETTINGS SECTION
 TEMPLATE_DIRS = (VIEWS_DIR,)
