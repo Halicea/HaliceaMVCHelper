@@ -1,0 +1,258 @@
+{%extends base %}
+{%block styles%}
+{{block.super}}
+<link href="/styles/Style.css" rel="stylesheet" type="text/css" />
+{%endblock%}
+{%block scripts%}
+{{block.super}}
+<link rel="stylesheet" href="/jscripts/jquery.treeview/jquery.treeview.css" />
+
+<script src="/jscripts/jquery.cookie.js" type="text/javascript"></script>
+<script src="/jscripts/jquery.treeview/jquery.treeview.js" type="text/javascript"></script>
+<script src="/jscripts/jquery.synctranslit.min.js" type="text/javascript"></script>
+<script type="text/javascript">
+	var activeMenu = '{{menu.Name}}'; 
+	var dialog = null;
+	var contentTypes = new Object;
+	//Content Types
+	contentTypes.CMSPage = 0
+	contentTypes.StaticPage = 1
+	contentTypes.NoContent = 2
+	//contentType.Post = 3
+	var cleditor = null;
+	$(function() {
+		newMenuDialog = $('#newMenu').dialog({autoOpen: false,
+			close: function(event, ui) { 
+                loadMenus(activeMenu);
+                $('#saveMenu').resetForm();
+            },
+            modal: true,
+            height: 180,
+            width: 230});
+		
+		newContentDialog = $('#newContent').dialog({autoOpen: false,
+			close: function(event, ui) { 
+				loadContents();
+				$('#saveContent').resetForm();
+			},
+			open: function(){
+				cleditor = $('#id_Content').cleditor()[0];
+            },
+            modal: true,
+            height: 500,
+            width: 600});
+		
+		setTree();
+		$('#frmNewLink').ajaxForm({
+			success:function(data){
+				if(data.errors.length>0){
+					alert(data.errors);	
+				}else{
+				    $('#divTree').html(data.tree);
+				    setTree();
+				    alert('link is saved');
+				}
+		    },
+			error:function(err){
+				alert('error'+err.toString());
+			}
+		});
+		
+		$('#saveMenu input[type="button"]').click(function(){
+			saveMenu();
+			loadMenus(activeMenu);
+		});
+
+	    $('#saveMenu').ajaxForm({
+	        success:function(data){
+	            alert("Menu is Created");
+	            newMenuDialog.dialog("close");
+	        },
+	        error:function(data){
+	            alert("error"+data)
+	            newMenuDialog.dialog("close");
+	        }
+	    });
+	    $('#saveContent').ajaxForm({
+            success:function(data){
+                alert("Content is Created");
+                newContentDialog.dialog("close");
+               
+            },
+            error:function(data){
+                alert("error"+data)
+                newContentDialog.dialog("close");
+               
+            }
+        });
+		$('#selContent').change(function(){
+			if($(this).find("option:selected").attr('type')=='static' ||
+			   !$("#isContent").is(':checked')){
+				$("#addressName").unbind("keyup");
+				$("#linkName").val("");
+				$("#addressName").val("");
+			}else{
+				var name = $(this).find("option:selected").text();
+                $("#addressNameHidden").val(name);
+                $('#addressNameHidden').syncTranslit({destination: 'addressName'});
+				$('#addressNameHidden').trigger('keyup');
+				$('#addressName').keyup(function(){
+					$("#addressNameHidden").val($('#addressName').val());
+					$('#addressNameHidden').trigger('keyup');
+				});
+				$("#linkName").val(name);
+			}
+			setContentType();
+		});
+		$('#selContent').trigger('change');
+		
+		$('#isContent').change(function(){
+			if($("#isContent").is(':checked')){
+				$('#selContent').attr("disabled",false);
+				$('#selContent').show();
+			}else{
+				$('#selContent').attr("disabled",true);
+				$('#selContent').hide();
+			}
+			setContentType();
+		});
+		$('#selMenu').change(function(){
+			activeMenu = $(this).val();
+			getTree(activeMenu);
+		});
+		
+	});
+	function setContentType(){
+		var value;
+		if($("#isContent").is(':checked')){
+			if($('#selContent').val()==""||$('#selContent').val()==null){
+				value = contentTypes["StaticPage"];
+			}else{
+				value= contentTypes["CMSPage"];
+			}
+		}else{
+			value = contentTypes["NoContent"];
+		}
+		$('#hdnContentType').val(value.toString());
+	}
+	function getTree(menu){
+		$.post('/menu/'+activeMenu,
+		function(data){
+			$('#divTree').html(data);
+			setTree();
+		});
+	}
+	function loadMenus(selected){
+		$.post('/menu?op=index_combo', function(data){
+			$('#selMenu').html(data);
+			$('#selMenu').val(selected);
+		});
+	}
+	function loadContents(selected){
+		$.post('/cms/contents?op=index', function(data){
+			var firstItem = '<option selected="selected" type="static" value="">Static Url</option>';
+			$('#selContent').html(firstItem+'\r\n'+data);
+			$('#selContent').val(selected);
+			$('#selContent').trigger('change');
+		});
+		
+	}
+	function setTree(){
+		var templ = "<input type='radio' name='parentLink' value='${key}'>"
+		var delTempl = "<a href='#' class='delNode'><img src='/images/trash.png' style='width:18px;' alt='delete'></a>"
+		$("#menu_"+activeMenu+" li").each(function(){
+			var id = $(this).find("a").attr("id");
+			var t = templ.replace("${key}", id)
+			t = delTempl+t;
+			$(this).prepend(t);
+		});
+		$('.delNode').click(function(){
+			key = $(this).next().next().attr('id');
+			$.post('/cms/links?op=delete&key='+key,
+			function(data){
+				loadMenus(activeMenu);
+				$('divStatus').html(data);
+				getTree();
+				setTree();
+			});
+			
+		});
+		$("#menu_"+activeMenu).treeview({
+			collapsed: false,
+			animated: "medium",
+			control:"#sidetreecontrol",
+			persist: "location"
+		});
+	}
+	
+</script>
+
+{%endblock%}
+{% block content %}
+<div class="post">
+    <h2>New Link:
+    <input type="BUTTON" class="btn" value="Add New Content" onclick="newContentDialog.dialog('open');"/>
+    <input type="BUTTON" class="bntSmall"  value="New Menu" onclick="newMenuDialog.dialog('open');"/>
+   </h2> 
+   <div id="newContent" title="New Content">
+      {%include CMSContentForm_edit%}    
+   </div>
+   <div id="newMenu" title="New Menu">
+      {%include Menu_edit%}
+   </div>
+    <form action="" method="post" id="frmNewLink">
+		<input type="hidden" name="op" value="save"></input>
+		<input type="hidden" id ="hdnContentType" name="ContentType"/>
+		<div style="width:100%;min-height:150px; display: block;">
+		<!-- Content Selection -->
+		<div style="float:left; text-align: right;">
+			<table>
+				<tr>
+					<td>Content:</td>
+					<td>
+						<input id="isContent" type="checkbox" value="true" checked="checked" style="float:left;" name="HasContent">
+						<select name="content" id="selContent">
+							<option selected="selected" type="static" value="">Static Url</option>
+							{% for cont in  contents %}
+							<option value="{{cont.key}}">{{cont.Title}}</option>
+							{% endfor %}
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>Url Name:</td>
+					<td>
+					<input type="text" style="display:none;" id="addressNameHidden"></input>
+					<input type="text" name="addressName" id="addressName"></input></td>
+				</tr>
+				<tr>
+					<td>Name</td>
+					<td><input type="text" name="name" id="linkName"></input></td>
+				</tr>
+				<tr>
+					<td>Display Order</td>
+					<td><select name="order"><option>1</option><option>2</option><option>3</option><option>4</option></select></td>
+				</tr>
+			</table>
+		</div>
+		<!-- Menu Selection -->
+		Menu:<select name="menu" id="selMenu">
+		   <option value="no_menu">--Select Menu--</option>
+		  {%for m in menus%}
+		  <option value="{{m.Name}}"
+		  {%ifequal menu.Name m.Name%}selected="selected"{%endifequal%}>
+		  {{m.Name}}
+		  </option>
+		  {%endfor%}
+		</select>
+		<hr/>
+		<!-- Link Selection -->
+		<div id="divTree" style="float: left">
+		</div>
+       
+        <div style="clear: both;"></div>
+		</div>
+    	<input type="submit" value="Save"></input>
+	</form>
+</div>
+{% endblock %}
