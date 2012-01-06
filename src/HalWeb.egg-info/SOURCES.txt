@@ -1,8 +1,10 @@
 MANIFEST.in
+README.rst
 TODO
 setup.py
 src/HalWeb.egg-info/PKG-INFO
 src/HalWeb.egg-info/SOURCES.txt
+src/HalWeb.egg-info/SOURCES.txt.orig
 src/HalWeb.egg-info/dependency_links.txt
 src/HalWeb.egg-info/entry_points.txt
 src/HalWeb.egg-info/not-zip-safe
