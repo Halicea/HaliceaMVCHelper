@@ -1,11 +1,12 @@
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp import template
-register = webapp.template.create_template_register()
-from django.template import resolve_variable, Node, TemplateSyntaxError, VariableDoesNotExist
+from django.template import resolve_variable, Node, TextNode, TemplateSyntaxError
+from django.template import Library
+from lib.halicea.wsgi import WSGIApplication
+register = Library()
 # access a dictionary
+
+@register.filter
 def hash(h, key):
     return h[key] 
-register.filter(hash)
 
 class CallNode(Node):
     def __init__(self, object, method, args=None, kwargs=None, context_name=None):
@@ -127,5 +128,39 @@ def call(parser, token):
         return CallNode(object, method, args=args, kwargs=kwargs, context_name=context_name)
     elif len(bits) == 2:
         return CallNode(object, method)
+    else:
+        raise TemplateSyntaxError(syntax_message)
+      
+@register.tag
+def url(parser, token):
+    """
+    Passes given arguments to given method and returns result
+
+    Syntax::
+
+        {% url controller_name action params  %}
+
+    Example usage::
+        {% url post id=post.Id %} 
+    """
+
+    bits = token.split_contents()
+    syntax_message = ("%(tag_name)s expects a syntax of %(tag_name)s "
+                       "url controller <action> <*args> <**kwargs> [as <context_name>]" %
+                       dict(tag_name=bits[0]))
+    route_kwargs={}
+    route_name = None
+    if len(bits)>1:
+      if not bits[1].startswith("'") and bits[1].find("=")==-1:
+        route_name = bits[1]
+      route_params = [x for x in bits if x.find('=')>0]
+      for kwa in route_params:
+        key, value = kwa.split('=')
+        route_kwargs[key]=value
+      if route_name:
+        url = WSGIApplication.app.url(route_name, **route_kwargs)
+      else:
+        url = WSGIApplication.app.url(**route_kwargs)
+      return TextNode(url)
     else:
         raise TemplateSyntaxError(syntax_message)

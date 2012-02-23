@@ -2,4 +2,5 @@ graft src/halicea/Templates
 graft src/halicea/baseProject
 global-exclude *.pyc *.pyo *.git
 include src/halicea/.halProject
+include src/halicea/.halPackages
 include README.rst setup.py TODO

@@ -1,5 +1,2 @@
-{%autoescape off%}class {{m.Name}}Form(ModelForm):
-    class Meta():
-        model={{m.Name}}
-        #exclude
-##End {{m.Name}}{%endautoescape%}
+{%autoescape off%}{{m.Name}}Form = model_form({{m.Name}}, exclude=[])
+{%endautoescape%}

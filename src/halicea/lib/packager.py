@@ -1,4 +1,16 @@
-from os.path import join as pjoin, basename
+#!/usr/bin/env python
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.from os.path import join as pjoin, basename
 import os, shutil, pprint
 from consoleHelpers import ask
 from string import Template
@@ -7,6 +19,7 @@ from locators import *
 from codeBlocksHelpers import HalCodeBlockLocator, InPythonBlockLocator
 import dirtree
 from halicea.lib.baseClasses import Block
+from halicea.lib import projectManager
 cblHal = HalCodeBlockLocator()
 cblPy = InPythonBlockLocator()
 from copy import deepcopy
@@ -19,7 +32,6 @@ def restrictBaseProjectAccess(func):
             raise Exception('Not allowed to run this operation against Hal')
         return func(*args, **kwargs)
     return ret
-
 class Packager(object):
     def __init__(self, input_method):
         self.input_method= input_method
@@ -41,7 +53,7 @@ class Packager(object):
         'docs_d':pjoin(proj_settings.DOCS_DIR, '${package}'),
         'lib_d':pjoin(proj_settings.LIB_DIR,'${package}'),
         'app.py_f':pjoin(proj_settings.APPS_DIR, '${package}.py'),
-        'handlerMap.py':proj_settings.HANDLER_MAP_FILE,
+        #'handlerMap.py':proj_settings.HANDLER_MAP_FILE,
         }
         
     @restrictBaseProjectAccess
@@ -68,37 +80,16 @@ class Packager(object):
                 dest = pjoin(destination, destName)
                 src = Template(self.packageStructure[key]).substitute(package=packageName)
                 self.copyItem(src, dest, dType)
-        
-        #Url Mappings Handle
-        handlerMap = Block.loadFromFile(proj_settings.HANDLER_MAP_FILE, cblPy)
-        urlmaps = handlerMap['ApplicationControllers'][packageName+proj_settings.CONTROLLER_MODULE_SUFIX]
-        if(urlmaps):
-            imports  = handlerMap['imports']
-            lines = [l for l in str(imports).splitlines() if packageName+proj_settings.CONTROLLER_MODULE_SUFIX in l]
-            handlersFile = Block(None, 'root', blType=2)
-            new_import = Block.createEmptyBlock('imports', cblPy)
-            handlersFile.append(new_import)
-            new_import.appendLines(lines)
-            handlersFile.appendText("webapphandlers = [")
-            handlersFile.append(Block.loadFromText(str(urlmaps), cblPy))
-            handlersFile.appendText("]")
-            handlersFile.saveToFile(pjoin(destination, 'handlerMap.py'), 'w')
-            
+
     def __unpack__(self, packageName, source):
+        projectManager.currentProject.packages.append(packageName)
         for key in self.packageStructure.keys():
             if key.find('_')>0:
                 (srcName, dType) = key.split('_')
                 src = pjoin(source, srcName)
                 dest = Template(self.packageStructure[key]).substitute(package=packageName)
                 self.copyItem(src, dest, dType)
-        if os.path.exists(pjoin(source, 'handlerMap.py')):
-            srcHandlers = Block.loadFromFile(pjoin(source, 'handlerMap.py'))
-            handlerMap = Block.loadFromFile(proj_settings.HANDLER_MAP_FILE, cblPy)
-            lines = str(srcHandlers['imports']).splitlines()
-            handlerMap["imports"].append(Block.loadFromLines(lines, 'root', cblPy))
-            handlerMap['ApplicationControllers'].append(Block.loadFromText(srcHandlers[packageName+proj_settings.CONTROLLER_MODULE_SUFIX], cblPy))
-            handlerMap.saveToFile(proj_settings.HANDLER_MAP_FILE, 'w')
-
+            
     @restrictBaseProjectAccess
     def createPackages(self, dirPath, root = proj_settings.PROJ_LOC):
         if not os.path.exists(dirPath):
@@ -135,10 +126,6 @@ class Packager(object):
             print 'Such Package does not exist'
     @restrictBaseProjectAccess
     def delete(self, pname):
-        handlermapblock1 = pname+settings.CONTROLLER_MODULE_SUFIX
-        handlermapblock2 = pname
-        handlermapimport = 'from '+basename(settings.CONTROLLERS_DIR)+' import '+pname+settings.CONTROLLER_MODULE_SUFIX
-    
         print 'This paths will be permanently deleted'
         for key in self.packageStructure.keys():
             if key.find('_')>0:
@@ -154,6 +141,7 @@ class Packager(object):
                     if os.path.exists(destName):
                         print destName
         if ask('Are you sure you want to delete the Package %s?'%pname, input=self.input_method):
+            pcks = projectManager.currentProject.packages
             for key in self.packageStructure.keys():
                 if key.find('_')>0:
                     destName=dType=''
@@ -167,28 +155,10 @@ class Packager(object):
                         if os.path.exists(destName):
                             print 'removing %s file'%destName
                             os.remove(destName)
-            handlerMap = Block.loadFromFile(settings.HANDLER_MAP_FILE, cblPy)
-            impLine = handlerMap['imports'][handlermapimport]
-            #remove the import
-            if impLine:
-                handlerMap['imports'].remove(impLine)
-            else:
-                print 'import \'', handlermapimport, '\'does not exists'
-            #Remove the urlMap Block
-            mapBl = handlerMap['ApplicationControllers'][handlermapblock2]
-            if mapBl:
-                print 'removing block:'
-                print str(mapBl)
-                handlerMap['ApplicationControllers'].remove(mapBl)
-            mapBl = handlerMap['ApplicationControllers'][handlermapblock1]
-            if mapBl:
-                print 'removing block:'
-                print str(mapBl)
-                handlerMap['ApplicationControllers'].remove(mapBl)
-            handlerMap.saveToFile(settings.HANDLER_MAP_FILE)
             print 'Package %s was removed'%pname
-    def listPackages(self):
-        """Lists the projects packages"""
-        raise NotImplementedError()
+    @staticmethod
+    def listPackages():
+        from halicea.lib.projectManager import currentProject
+        print [x.keys()[0] for x in currentProject.packages]
         #contr= ["r".replace(proj_settings.CON, new)]
         

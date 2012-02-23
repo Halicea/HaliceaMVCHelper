@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
-from imports import *
-from google.appengine.ext import webapp
-from handlerMap import webapphandlers
-application = webapp.WSGIApplication(webapphandlers, debug=settings.DEBUG)
-if __name__ == "__main__":
-    runapp(application)
+from conf.settings import DEBUG, EXTENSIONS, COOKIE_KEY
+from conf.handlerMap import webapphandlers
+from lib.halicea.HalBaseHandler import HalBaseHandler
+from lib.halicea.wsgi import WSGIApplication
+from lib.gaesessions import SessionMiddleware
+#register Extensions
+HalBaseHandler.extend(*EXTENSIONS)
+#end
+app = SessionMiddleware(
+        WSGIApplication(webapphandlers, debug=DEBUG), 
+        COOKIE_KEY)

@@ -5,7 +5,7 @@
     <div class="post colapsible">
     	<input type="hidden" value="item.key" />
         <div class="contentHeader">
-        	<h1><a href="/cms/content/{{item.key}}?op=view">{{item.Title}}</a></h1>  		
+        	<h1><a href="{%url controller="cms/content" action="view" id=item.key %}">{{item.Title}}</a></h1>  		
         </div>
         <div class="postContent">
         	{%autoescape off%}
@@ -15,7 +15,7 @@
         <div class="postFooter">
         	<label>Created on {{item.DateCreated|date:"M/d"}} by {{item.Creator}}</label>
         	<div class="nav">
-        		<a href="/cms/content/{{item.key}}?op=edit">Edit</a>
+        		<a href="{%url controller="cms/content" action="edit" id=item.key%}>Edit</a>
         	</div>
         </div>
     </div>
