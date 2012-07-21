@@ -10,7 +10,8 @@
 #GNU General Public License for more details.
 #
 #You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.import os 
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import os 
 import shutil
 import yaml
 from os.path import basename, join as pjoin, dirname, abspath
@@ -57,7 +58,14 @@ class ProjectManager(object):
             str = str.replace('baseProject', 'src')
             f = open(pjoin(toPath, '.halProject'), 'w')
             f.write(str)
-            f.close()
+            f.close()    
+            
+            #set the .halPackages File
+            str = open(pjoin(rooot, '.halPackages'), 'r').read()
+            f = open(pjoin(toPath, '.halPackages'), 'w')
+            f.write(str)
+            f.close()  
+            
             print 'Project is Created!'
     #Creates Pydev Eclipse project files
     #        str = open(pjoin(toPath, '.project'), 'r').read()

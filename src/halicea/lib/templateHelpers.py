@@ -10,7 +10,8 @@
 #GNU General Public License for more details.
 #
 #You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.from config import djangoVars
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from config import djangoVars
 def convertToTemplate(text,input={}):
     result = text
     for k, v in djangoVars.iteritems():

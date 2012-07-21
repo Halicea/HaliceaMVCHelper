@@ -10,7 +10,8 @@
 #GNU General Public License for more details.
 #
 #You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.__doc__ = """
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+__doc__ = """
  Importing the settings from the web project
  this is the module that needs to be replaced while testing
  it needs to be called only in the config modueland nowhere else because fo dependencies
@@ -28,7 +29,7 @@ def __getProjectInfo__():
     prj = pjoin(os.getcwd(),'.halProject')
     if not os.path.exists(prj):
         prj = pjoin(INSTALL_LOC, '.halProject')
-        result = {'templates':pjoin(INSTALL_LOC, 'Templates'), 'project':pjoin(INSTALL_LOC, 'baseProject')}
+        result = {'templates':pjoin(INSTALL_LOC, 'Templates'), 'path':pjoin(INSTALL_LOC, 'baseProject'), 'name':'baseProject'}
     else:
         replacementsDict = {'halweb': INSTALL_LOC,}
         #nix style config file parser with available dictionary replacement of the values

@@ -10,9 +10,8 @@
 #GNU General Public License for more details.
 #
 #You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.'''
-Created on Oct 28, 2010
-
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+'''
 @author: KMihajlov
 '''
 #__package__='halicea'

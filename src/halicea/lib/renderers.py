@@ -10,7 +10,8 @@
 #GNU General Public License for more details.
 #
 #You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.from django import template
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from django import template
 
 from django.template.loader import *
 class HalTemplate(object):
